@@ -1,4 +1,4 @@
-`include "timescale.v"
+`timescale 1ns/10ps
 `include "can_defs.svh"
 
 module can_bsp
