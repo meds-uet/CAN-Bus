@@ -7,7 +7,7 @@
 // Author: Muhammad Tahir, UET Lahore
 // Date: 1.1.2025
 
-`timescale 1 ns / 100 ps
+`timescale 1 ns/10 ps
 
 `include "can_defs.svh"
 
@@ -42,7 +42,8 @@ logic                                   tseg2_active_flag;
 
 logic                                   reset_resync_delay;
 logic                                   reset_tq_counter;  
-logic                                   bit_start_point;
+
+logic                                   bit_start_point;
 logic                                   bit_sample_point;
 logic                                   rx_sample_curr;
 logic                                   rx_sample_prev;
