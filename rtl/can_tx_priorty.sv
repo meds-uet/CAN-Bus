@@ -8,7 +8,9 @@
 //Author: Ayesha Qadir
 //Date: 15 July,2025
 
+`include "can_defs.svh"
 module can_tx_priority #(parameter N = 4) (
+
   input  logic clk,              // Clock signal
   input  logic rst,              // Asynchronous reset
 
@@ -26,19 +28,21 @@ module can_tx_priority #(parameter N = 4) (
   output logic [7:0]  tx_data [8]        // Data bytes to send
 );
 
-  // Structure for a transmission request
-  typedef struct {
-    logic [10:0] id;           // CAN ID
-    logic [3:0]  dlc;          // Data Length Code
-    logic [7:0]  data [8];     // Data bytes
-    logic        valid;        // Valid bit: 1 means occupied, 0 means free
-  } tx_req_t;
+  localparam int CLOG2_N = 
+  (N <= 2) ? 1 :
+  (N <= 4) ? 2 :
+  (N <= 8) ? 3 :
+  (N <= 16) ? 4 :
+  (N <= 32) ? 5 :
+  (N <= 64) ? 6 :
+  (N <= 128) ? 7 :
+  (N <= 256) ? 8 : 9;
 
-  tx_req_t tx_reqs [N];        // Array of N request slots
+  tx_req_t tx_reqs [N];
+  logic [CLOG2_N:0] i_sel;
 
-  logic [clog2(N)-1:0] i_sel;  // Index of the currently selected (lowest ID) request
 
-  // --- Insert new TX request or clear completed one ---
+// --- Insert new TX request or clear completed one ---
   always_ff @(posedge clk or posedge rst) begin
     if (rst) begin
       // On reset, clear all request slots
@@ -99,20 +103,5 @@ always_comb begin
   end
 end
 
-
-  // --- Compile-time log2 function ---
-  // Calculates the number of bits needed to store values 0 to N-1
-  function automatic int clog2(input int value);
-    int i;
-    begin
-      i = 0;
-      value = value - 1; // Optional: handle exact powers of 2
-      while (value > 0) begin
-        value = value >> 1;
-        i = i + 1;
-      end
-      return i;
-    end
-  endfunction
 
 endmodule

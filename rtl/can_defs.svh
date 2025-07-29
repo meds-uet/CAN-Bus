@@ -64,4 +64,13 @@ typedef struct packed {
     logic [1:0]                 sjw;
 } type_reg2tim_s;
 
+ // Structure for a transmission request
+  typedef struct {
+    logic [10:0] id;           // CAN ID
+    logic [3:0]  dlc;          // Data Length Code
+    logic [7:0]  data [8];     // Data bytes
+    logic        valid;        // Valid bit: 1 means occupied, 0 means free
+  } tx_req_t;
+
+
 `endif // CAN_DEFS
