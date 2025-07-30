@@ -15,6 +15,22 @@ The CAN Bus IP Core is designed to transmit and receive CAN frames with full sup
 # ***Top Level Diagram***
  
 <p align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/top%20module.jpg" width="400" height="400">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/top%20module.jpg" width="400" height="500">
 </p>
+
+## ***Sub Modules***
+
+Each submodule below contributes to a specific stage of CAN frame transmission and reception, forming the core logic of the IP.
+1. ***can_tranmitter***
+2. ***can_receiver***
+3. ***can_tx_priority***
+4. ***can_filtering***
+5. ***can_arbitration***
+6. ***can_bitstuff***
+7. ***can_crc15_gen***
+8. ***can_error_detection***
+9. ***can_timing***
+
+
+
 

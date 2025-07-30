@@ -1,142 +1,95 @@
-// Copyright 2025 Maktab-e-Digital Systems Lahore.
-// Licensed under the Apache License, Version 2.0, see LICENSE file for details.
-// SPDX-License-Identifier: Apache-2.0
-
-// Description: Stimulates the CAN receiver with a destuffed standard frame bitstream and 
-//verifies correct decoding of ID, DLC, and data.
-
-// Author: Ayesha Qadir
-// Date: 21 July, 2025
-
-
-
-`timescale 1ns/10ps
+`timescale 1ns / 1ps
 `include "can_defs.svh"
 
 module tb_can_receiver;
 
-  logic clk;
-  logic rst_n;
-  logic sampled_bit;
-  logic sampled_bit_q;
-  logic sample_point;
+  // Inputs
+  logic clk, rst_n;
   logic rx_point;
+  logic rx_bit;
 
+  // Outputs
   logic [10:0] rx_id_std;
-  logic        rx_rtr1;
+  logic [17:0] rx_id_ext;
   logic        rx_ide;
+  logic        rx_rtr;
   logic [3:0]  rx_dlc;
-  logic [14:0] rx_crc;
   logic [7:0]  rx_data [0:7];
+  logic [14:0] rx_crc;
   logic        rx_done;
 
-  // Instantiate DUT
+  // DUT
   can_receiver uut (
     .clk(clk),
     .rst_n(rst_n),
-    .sampled_bit(sampled_bit),
-    .sampled_bit_q(sampled_bit_q),
-    .sample_point(sample_point),
     .rx_point(rx_point),
+    .rx_bit(rx_bit),
     .rx_id_std(rx_id_std),
-    .rx_rtr1(rx_rtr1),
+    .rx_id_ext(rx_id_ext),
     .rx_ide(rx_ide),
+    .rx_rtr(rx_rtr),
     .rx_dlc(rx_dlc),
-    .rx_crc(rx_crc),
     .rx_data(rx_data),
+    .rx_crc(rx_crc),
     .rx_done(rx_done)
   );
 
-  // Clock generation
+  // Clock
   always #5 clk = ~clk;
 
-  // Test stimulus task
-  task send_frame_bit(input bit b);
-    begin
-      sampled_bit_q = sampled_bit; // delay previous bit
-      sampled_bit   = b;
-      sample_point  = 1;
-      rx_point      = 1;
-      @(posedge clk);
-      sample_point  = 0;
-      rx_point      = 0;
-      @(posedge clk);
-    end
-  endtask
+  // Example Frame
+  bit [54:0] frame = {
+    1'b0,                     // SOF
+    11'b00100100011,         // ID = 0x123
+    1'b0,                    // RTR
+    1'b0,                    // IDE
+    1'b0,                    // r0
+    4'b0001,                 // DLC = 1
+    8'b10101011,             // Data = 0xAB
+    15'b001001000110100,     // CRC dummy
+    1'b1,                    // CRC delimiter
+    1'b1,                    // ACK slot
+    1'b1,                    // ACK delimiter
+    7'b1111111,              // EOF
+    3'b111                   // IFS
+  };
 
-  // Full CAN frame generation
   initial begin
-    $display("\n--- Starting CAN Receiver Testbench ---\n");
+    $display("=== Starting CAN Receiver Testbench ===");
 
-    // Reset
+    // Initialize
     clk = 0;
     rst_n = 0;
-    sampled_bit = 1;
-    sampled_bit_q = 1;
-    sample_point = 0;
     rx_point = 0;
+    rx_bit = 1;
+
+    // Reset
+    #20; rst_n = 1;
     #20;
-    rst_n = 1;
-    #20;
 
-    // --- SOF (Start of Frame) ---
-    send_frame_bit(0);
-
-    // --- Standard ID = 0x7DC = 111 1101 1100 (11 bits) ---
-    send_frame_bit(1); send_frame_bit(1); send_frame_bit(1);
-    send_frame_bit(1); send_frame_bit(1); send_frame_bit(0);
-    send_frame_bit(1); send_frame_bit(1); send_frame_bit(1);
-    send_frame_bit(0); send_frame_bit(0);
-
-    // --- RTR = 0 ---
-    send_frame_bit(0);
-
-    // --- IDE = 0 (standard frame) ---
-    send_frame_bit(0);
-
-    // --- r0 = 0 ---
-    send_frame_bit(0);
-
-    // --- DLC = 1 (4'b0001) ---
-    send_frame_bit(0); send_frame_bit(0);
-    send_frame_bit(0); send_frame_bit(1);
-
-    // --- Data Byte = 0xA5 = 10100101 ---
-    send_frame_bit(1); send_frame_bit(0); send_frame_bit(1); send_frame_bit(0);
-    send_frame_bit(0); send_frame_bit(1); send_frame_bit(0); send_frame_bit(1);
-
-    // --- Dummy CRC = 15 bits (e.g., 15'h1ABC = 000110101011100) ---
-    send_frame_bit(0); send_frame_bit(0); send_frame_bit(0); send_frame_bit(1);
-    send_frame_bit(1); send_frame_bit(0); send_frame_bit(1); send_frame_bit(0);
-    send_frame_bit(1); send_frame_bit(0); send_frame_bit(1); send_frame_bit(1);
-    send_frame_bit(1); send_frame_bit(0); send_frame_bit(0);
-
-    // --- CRC Delimiter = 1 ---
-    send_frame_bit(1);
-
-    // --- ACK = 0 (dominant) ---
-    send_frame_bit(0);
-
-    // --- ACK Delimiter = 1 ---
-    send_frame_bit(1);
-
-    // --- EOF = 7 recessive bits ---
-    repeat (7) send_frame_bit(1);
-
-    // --- IFS = 3 bits ---
-    repeat (3) send_frame_bit(1);
-
-    // Wait extra cycles for rx_done
-    repeat (20) @(posedge clk);
-
-    // --- Display Results ---
-    $display("\n--- CAN Frame Reception Completed ---\n");
-    $display("ID: %h, RTR: %b, IDE: %b, DLC: %d, CRC: %h, DONE: %b",
-      rx_id_std, rx_rtr1, rx_ide, rx_dlc, rx_crc, rx_done);
-    for (int i = 0; i < rx_dlc; i++) begin
-      $display("DATA[%0d]: %h", i, rx_data[i]);
+    // Send frame bits
+    for (int i = 0; i < $bits(frame); i++) begin
+      rx_bit = frame[$bits(frame)-1 - i];
+      rx_point = 1;
+      #10;
+      rx_point = 0;
+      #10;
     end
+
+    //  Wait for rx_done and then wait one clk edge to get output
+    @(posedge rx_done);
+    @(posedge clk); // Wait one more clock to ensure data is updated
+
+    $display("\n=== Frame Received ===");
+    $display("  rx_id_std  = 0x%03h", rx_id_std);
+    $display("  rx_rtr     = %0b",    rx_rtr);
+    $display("  rx_ide     = %0b",    rx_ide);
+    $display("  rx_dlc     = %0d",    rx_dlc);
+    $display("  rx_data[0] = 0x%02h", rx_data[0]);
+    $display("  rx_crc     = 0x%04h", rx_crc);
+    $display("=========================");
 
     $finish;
   end
+
 endmodule
