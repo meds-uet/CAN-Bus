@@ -1,11 +1,10 @@
 module can_error_detection (
     input  logic clk,
     input  logic rst,
-    // Basic sampled data
-    input  logic rx_bit,          // Sampled bit from CAN bus
-    input  logic tx_bit,          // Bit that we tried to send
-    input  logic tx_active,       // Are we transmitting?
-    input  logic sample_point,    // From bit timing logic
+    input  logic rx_bit,          
+    input  logic tx_bit,          
+    input  logic tx_active,       
+    input  logic sample_point,    
 
     // For stuff error detection
     input  logic bit_de_stuffing_ff,
@@ -33,20 +32,24 @@ module can_error_detection (
     output logic stuff_error,
     output logic crc_error,
     output logic form_error,
-    output logic ack_error
+    output logic ack_error,
+    output logic [8:0] tec,
+    output logic [7:0] rec,
+    output logic error_active,
+    output logic error_passive,
+    output logic bus_off
 );
 
 // --- STUFF ERROR ---
-    // Triggered at sample_point when 6th same bit is seen in a stuffing field
+   
     assign stuff_error = sample_point & bit_de_stuffing_ff & remove_stuff_bit & (rx_bit_curr == rx_bit_prev);
 // BIT ERROR
     assign bit_error = sample_point & tx_active & 
      (tx_bit != rx_bit) &  ~((tx_bit == 1'b1) &&(rx_bit == 1'b0) && (in_arbitration ||in_ack_slot ||sending_error_flag_passive));
 // ACK ERROR
-    assign ack_error = sample_point & tx_active & in_ack_slot & (rx_bit == 1'b1);  // recessive received
+    assign ack_error = sample_point & tx_active & in_ack_slot & (rx_bit == 1'b1);  
 
-// FORM ERROR: happens when fixed-format fields contain illegal bits
-
+// FORM ERROR:
 always_ff @(posedge clk or negedge rst) begin
     if (!rst) begin
         form_error <= 1'b0;
@@ -66,6 +69,56 @@ always_ff @(posedge clk or negedge rst) begin
 end
 // CRC ERROR
 assign crc_error = crc_check_done & crc_rx_valid & ~crc_rx_match;
+always_ff @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            tec <= 9'd0;
+            rec <= 8'd0;
+        end else begin
+            // Transmit errors 
+            if (tx_active && (bit_error || form_error || ack_error)) begin
+                if (tec <= 9'd503)   // Prevent overflow beyond 511
+                    tec <= tec + 9'd8;
+                else
+                    tec <= 9'd511;
+            end
+
+            // Receive errors 
+            if (!tx_active && (bit_error || form_error || stuff_error || crc_error)) begin
+                 if (rec < 8'd254)   // Only increment if less than 255
+                         rec <= rec + 8'd1;
+                else
+                     rec <= 8'd255;   
+         end 
+     end
+end
+//  ERROR STATE LOGIC 
+always_ff @(posedge clk or negedge rst) begin
+    if (!rst) begin
+        error_active  <= 1'b1;
+        error_passive <= 1'b0;
+        bus_off       <= 1'b0;
+    end else begin
+        // Bus-Off condition
+        if (tec >= 9'd256) begin
+            bus_off       <= 1'b1;
+            error_passive <= 1'b0;
+            error_active  <= 1'b0;
+
+        // Passive state
+        end else if ((tec >= 9'd128) || (rec >= 8'd128)) begin
+            bus_off       <= 1'b0;
+            error_passive <= 1'b1;
+            error_active  <= 1'b0;
+
+        // Active state
+        end else begin
+            bus_off       <= 1'b0;
+            error_passive <= 1'b0;
+            error_active  <= 1'b1;
+        end
+    end
+end
+
 
 endmodule
 
