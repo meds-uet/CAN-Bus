@@ -212,12 +212,120 @@ Here is the FSM for receiver:
   <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/Receiver%20FSM.png"="400" height="500">
 </p>
 
+## `can_bitstuff` Module Documentation
 
+### Overview
 
+The `can_bitstuff` module implements bit stuffing and de-stuffing logic for a CAN (Controller Area Network) protocol transmitter and receiver. Bit stuffing is used to ensure synchronization and avoid long runs of identical bits, which could cause the receiver to lose track of bit timing.
 
+This module supports both insertion (for transmission) and removal (for reception) of stuffed bits.
 
+### Interface
 
+#### Inputs
 
+| Signal         | Width | Description                                                                 |
+|----------------|-------|-----------------------------------------------------------------------------|
+| `clk`          | 1     | System clock                                                                |
+| `rst_n`        | 1     | Active-low synchronous reset                                                |
+| `bit_in`       | 1     | Incoming bit to be processed (from TX or RX)                                |
+| `sample_point` | 1     | Indicates when to sample and count bits                                     |
+| `insert_mode`  | 1     | Mode select: `1` for stuffing (TX), `0` for de-stuffing (RX)                |
+
+#### Outputs
+
+| Signal             | Width | Description                                                                            |
+|--------------------|-------|----------------------------------------------------------------------------------------|
+| `bit_out`          | 1     | Output bit after applying bit stuffing or de-stuffing logic                            |
+| `insert_or_remove` | 1     | Indicates whether a bit stuffing (in insert mode) or bit skipping (in receive mode) is triggered |
+
+### Functionality
+
+#### Bit Stuffing (Transmit Mode)
+
+In insert mode (`insert_mode = 1`):
+
+- The module tracks the number of consecutive identical bits using `same_count`.
+- If five consecutive identical bits are detected (`same_count == 5`), the module outputs the complement of the last bit as the sixth bit (stuffed bit).
+- The `insert_or_remove` signal is asserted to indicate that stuffing occurred.
+
+#### Bit De-stuffing (Receive Mode)
+
+In de-stuffing mode (`insert_mode = 0`):
+
+- The module tracks the same pattern of five consecutive identical bits.
+- On the sixth same bit (the stuffed bit), `insert_or_remove` is asserted to indicate the receiver should ignore this bit.
+- The actual skipping of this bit should be handled by receiver logic outside this module.
+
+### Internal Logic
+
+- `same_count`: A 3-bit counter that increments when `bit_in` matches the previous bit. Reset to 1 on mismatch.
+- `prev_bit`: Holds the previous sampled bit to compare with the current input.
+- Bit stuffing/de-stuffing is evaluated only at `sample_point`.
+
+## Bit Stuffing Data Path
+
+<p align="center">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/Bit_stuffing.png?raw=true"="400" height="500">
+</p>
+
+## Bit Destuffing Data Path
+
+<p align="center">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/de_stuffing.png?raw=true"="400" height="500">
+</p>
+
+## CAN Arbitration Module
+
+### Overview
+
+The `can_arbitration` module is responsible for detecting arbitration loss in a Controller Area Network (CAN) protocol. Arbitration occurs during the ID field of a CAN frame when multiple nodes may attempt to transmit simultaneously. Arbitration loss is detected when a transmitter sends a recessive bit (`1`) but sees a dominant bit (`0`) on the bus, indicating another node with a higher priority is transmitting.
+
+---
+
+### Functionality
+
+This module monitors the transmitted (`tx_bit`) and received (`rx_bit`) bits during the arbitration phase. If the node transmits a recessive bit but receives a dominant bit at a `sample_point` during the active arbitration phase, the module flags this as an arbitration loss.
+
+---
+
+### Port Description
+
+| Signal Name        | Direction | Width | Description                                                                 |
+|--------------------|-----------|--------|-----------------------------------------------------------------------------|
+| `clk`              | Input     | 1      | System clock                                                                |
+| `rst_n`            | Input     | 1      | Active-low synchronous reset                                                |
+| `tx_bit`           | Input     | 1      | Transmitted bit (0 = dominant, 1 = recessive)                               |
+| `rx_bit`           | Input     | 1      | Received bit from CAN bus                                                   |
+| `sample_point`     | Input     | 1      | Indicates a valid sampling point for comparison                             |
+| `arbitration_active` | Input   | 1      | High during the arbitration field (usually during the ID field)            |
+| `arbitration_lost` | Output    | 1      | High when arbitration loss is detected                                     |
+
+---
+
+### Internal Logic
+
+- A flip-flop `lost_ff` holds the arbitration loss state.
+- At each `sample_point`, if:
+  - `arbitration_active` is asserted,
+  - the node transmits `1` (recessive), and
+  - it receives `0` (dominant),
+  then `lost_ff` is set to `1`.
+- Once arbitration ends (`arbitration_active` = 0), the loss flag is cleared.
+
+---
+
+### Usage
+
+This module is used in CAN transmitters to detect if they have lost arbitration and should back off from transmission to allow a higher-priority frame to continue uninterrupted.
+
+---
+
+### Arbitration Design Diagram
+
+<p align="center">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/Arbitration.jpg?raw=true"="400" height="500">
+</p>
 
 
 
