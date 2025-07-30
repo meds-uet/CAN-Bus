@@ -32,5 +32,106 @@ Each submodule below contributes to a specific stage of CAN frame transmission a
 9. ***can_timing***
 
 
+## CAN Transmitter Module (`can_transmitter`)
+
+###  Description
+The `can_transmitter` module handles the bit-level serialization of a CAN frame according to the CAN 2.0A/B protocol. It implements a finite state machine (FSM) that transitions through each field of the frame — from Start of Frame (SOF) to Interframe Space (IFS) — and generates a single `tx_bit` at each sample point on the CAN bus.
+
+This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** frames and includes handling for **remote transmission requests (RTR)**, **data fields**, **CRC transmission**, and **frame delimiters**.
+
+---
+
+###  Inputs
+
+| Signal       | Width  | Description                                               |
+|--------------|--------|-----------------------------------------------------------|
+| `clk`        | 1      | System clock                                              |
+| `rst_n`      | 1      | Asynchronous active-low reset                             |
+| `tx_enable`  | 1      | Starts frame transmission from IDLE                       |
+| `tx_point`   | 1      | Sample point at which bit should be output                |
+| `initiate`   | 1      | Resets FSM to IDLE state (used for re-init or abort)      |
+| `tx_id_std`  | 11     | Standard 11-bit identifier                                |
+| `tx_id_ext`  | 18     | Remaining bits for extended ID (to form 29-bit ID)        |
+| `tx_ide`     | 1      | Identifier Extension bit (0 = Standard, 1 = Extended)     |
+| `tx_rtr`     | 1      | Remote Transmission Request bit                           |
+| `tx_dlc`     | 4      | Data Length Code (number of data bytes: 0 to 8)           |
+| `tx_data`    | 8×8    | Data payload (up to 8 bytes)                              |
+| `tx_crc`     | 15     | Precomputed CRC for frame contents                        |
+
+---
+
+###  Outputs
+
+| Signal      | Width | Description                                      |
+|-------------|--------|--------------------------------------------------|
+| `tx_bit`    | 1     | Output serialized CAN bit at `tx_point`          |
+| `tx_done`   | 1     | Set high for one cycle after frame transmission  |
+
+---
+
+###  FSM States Summary
+
+| State               | Description                                          |
+|---------------------|------------------------------------------------------|
+| `STATE_IDLE`        | Waits for `tx_enable`                                |
+| `STATE_SOF`         | Transmits Start of Frame (SOF = 0)                   |
+| `STATE_ID_STD`      | Sends 11-bit standard ID                             |
+| `STATE_BIT_RTR_1`   | Sends RTR bit for standard frame                     |
+| `STATE_BIT_IDE`     | Sends IDE bit to distinguish standard/extended frame |
+| `STATE_ID_EXT`      | Sends remaining 18 bits of extended ID               |
+| `STATE_BIT_RTR_2`   | Sends RTR bit for extended frame                     |
+| `STATE_BIT_R_1`     | Sends reserved bit (1st)                             |
+| `STATE_BIT_R_0`     | Sends reserved bit (2nd)                             |
+| `STATE_DLC`         | Sends 4-bit Data Length Code                         |
+| `STATE_DATA`        | Sends the data bytes                                 |
+| `STATE_CRC`         | Sends 15-bit CRC                                     |
+| `STATE_CRC_DELIMIT` | Sends CRC delimiter (1)                              |
+| `STATE_ACK`         | Sends recessive bit for ACK                          |
+| `STATE_ACK_DELIMIT` | Sends ACK delimiter                                  |
+| `STATE_EOF`         | Sends 7-bit End Of Frame                             |
+| `STATE_IFS`         | Sends 3-bit Inter-frame space and sets `tx_done`     |
+
+---
+
+###  Design Behavior
+
+- Frame transmission starts when `tx_enable` is asserted and `tx_point` is high.
+- Bit and byte counters track field progress in each state.
+- CRC must be calculated externally and provided via `tx_crc`.
+- FSM resets on `rst_n` or `initiate`.
+
+---
+
+###  Design Notes
+
+- Compliant with CAN 2.0A and 2.0B.
+- `tx_point` ensures correct synchronization with CAN timing.
+- Suitable for use in a complete CAN controller with separate arbitration/error FSMs.
+
+---
+
+### Data Path and Controller
+
+Here is the data serialization data path:
+
+<p align="center">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/can_transmitter.png?raw=true width"="400" height="500">
+</p>
+
+Here is the FSM for transmitter:
+
+<p align="center">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/Transmitter%20FSM.png?raw=true"="400" height="500">
+</p>
+
+
+
+
+
+
+
+
+
+
 
 
