@@ -125,6 +125,101 @@ Here is the FSM for transmitter:
 </p>
 
 
+## CAN Receiver Module (`can_receiver`)
+
+###  Description
+The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sampling point (`rx_point`). It reconstructs the full frame according to the CAN 2.0A/B protocol, supporting both **standard (11-bit ID)** and **extended (29-bit ID)** formats. It outputs all parsed fields of the CAN frame, including identifiers, control bits, data, and CRC, and signals completion with `rx_done`.
+
+---
+
+###  Inputs
+
+| Signal       | Width | Description                                               |
+|--------------|--------|-----------------------------------------------------------|
+| `clk`        | 1     | System clock                                              |
+| `rst_n`      | 1     | Asynchronous active-low reset                             |
+| `rx_point`   | 1     | Sample point trigger (bit sampling sync pulse)            |
+| `rx_bit`     | 1     | Serial bit from CAN bus to be decoded                     |
+
+---
+
+###  Outputs
+
+| Signal       | Width   | Description                                            |
+|--------------|---------|--------------------------------------------------------|
+| `rx_id_std`  | 11      | Standard 11-bit identifier                             |
+| `rx_id_ext`  | 18      | Remaining bits for extended identifier (for 29-bit ID) |
+| `rx_ide`     | 1       | Identifier Extension bit (0 = standard, 1 = extended)  |
+| `rx_rtr`     | 1       | Remote Transmission Request bit                        |
+| `rx_dlc`     | 4       | Data Length Code (0–8)                                 |
+| `rx_data`    | 8×8     | Reconstructed data bytes                               |
+| `rx_crc`     | 15      | Received CRC bits (no validation in this module)       |
+| `rx_done`    | 1       | Goes high for one cycle after successful frame receive |
+
+---
+
+###  FSM States Summary
+
+| State               | Description                                              |
+|---------------------|----------------------------------------------------------|
+| `STATE_IDLE`        | Wait for SOF (Start of Frame)                            |
+| `STATE_ID_STD`      | Receive 11-bit standard ID                               |
+| `STATE_BIT_RTR_1`   | Receive RTR bit (for standard ID)                        |
+| `STATE_BIT_IDE`     | Receive IDE bit                                          |
+| `STATE_ID_EXT`      | Receive 18-bit extended ID if `rx_ide` = 1               |
+| `STATE_BIT_RTR_2`   | Receive RTR bit (for extended ID)                        |
+| `STATE_BIT_R_1`     | Reserved bit (ignored)                                   |
+| `STATE_BIT_R_0`     | Reserved bit (ignored)                                   |
+| `STATE_DLC`         | Receive 4-bit data length code                           |
+| `STATE_DATA`        | Receive actual data bytes (up to 8)                      |
+| `STATE_CRC`         | Receive 15-bit CRC                                       |
+| `STATE_CRC_DELIMIT` | Receive CRC delimiter (ignored)                          |
+| `STATE_ACK`         | ACK slot (ignored in this module)                        |
+| `STATE_ACK_DELIMIT` | ACK delimiter (ignored)                                  |
+| `STATE_EOF`         | End of Frame (7 bits of recessive level)                |
+| `STATE_IFS`         | Inter-frame space (3 bits)                               |
+
+---
+
+###  Design Behavior
+
+- Each `rx_bit` is shifted into internal registers when `rx_point` is high.
+- Frame fields (IDs, DLC, data, CRC) are parsed and saved.
+- Data bytes are reassembled using an internal shift register.
+- `rx_done` indicates completion of a valid frame capture.
+- No CRC or ACK validation is performed here (can be added externally).
+
+---
+
+###  Key Internal Registers
+
+| Register           | Purpose                                     |
+|--------------------|---------------------------------------------|
+| `rx_id_std_ff`     | Stores standard 11-bit ID                   |
+| `rx_id_ext_ff`     | Stores 18-bit extension for extended ID     |
+| `rx_data_array`    | Holds 8 bytes of received data              |
+| `rx_crc_ff`        | Captures 15-bit CRC from the frame          |
+| `rx_done_ff`       | Indicates reception complete                |
+| `data_byte_ff`     | Internal shift register for byte assembly   |
+
+---
+
+### FSM Diagram 
+
+Here is the FSM for receiver:
+
+<p align="center">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/Receiver%20FSM.png"="400" height="500">
+</p>
+
+
+
+
+
+
+
+
+
 
 
 
