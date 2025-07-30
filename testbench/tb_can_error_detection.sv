@@ -33,6 +33,11 @@ module tb_can_error_detection;
     logic crc_error;
     logic form_error;
     logic ack_error;
+    logic [8:0] tec;
+    logic [7:0] rec;
+    logic error_active;
+    logic error_passive;
+    logic bus_off;
 
     // DUT
     can_error_detection dut (
@@ -59,7 +64,12 @@ module tb_can_error_detection;
         .stuff_error(stuff_error),
         .crc_error(crc_error),
         .form_error(form_error),
-        .ack_error(ack_error)
+        .ack_error(ack_error),
+        .tec(tec),
+        .rec(rec),
+        .error_active(error_active),
+        .error_passive(error_passive),
+        .bus_off(bus_off)
     );
 
     // Clock generation
@@ -94,61 +104,64 @@ module tb_can_error_detection;
         // Reset pulse
         #10 rst = 1;
 
-        // Test BIT ERROR
+        // Test 1: BIT ERROR (Tx mode)
         #10;
         sample_point = 1;
         tx_active = 1;
         tx_bit = 1;
         rx_bit = 0;
-        #5;
-        $display("Test 1 - Bit Error: bit_error = %b", bit_error);
         #10;
-        sample_point = 0;
-        tx_active=0;
+       $display("Test 1 - Bit Error: bit_error = %b | TEC = %0d | REC = %0d | active = %b | passive = %b | bus_off = %b",
+       bit_error, tec, rec, error_active, error_passive, bus_off);
 
-        // Test STUFF ERROR
+        sample_point = 0;
+        tx_active = 0;
+
+        // Test 2: STUFF ERROR (Rx mode)
         #10;
         bit_de_stuffing_ff = 1;
         remove_stuff_bit = 1;
         sample_point = 1;
         rx_bit_curr = 1;
         rx_bit_prev = 1;
-        #5;
-         $display("Test 2 - Stuff Error: stuff_error = %b", stuff_error);
         #10;
+       $display("Test 2 - Stuff Error: stuff_error = %b | TEC = %0d | REC = %0d | active = %b | passive = %b | bus_off = %b",
+       stuff_error, tec, rec, error_active, error_passive, bus_off);
         sample_point = 0;
+        bit_de_stuffing_ff = 0;
+        remove_stuff_bit = 0;
 
-        // Test CRC ERROR
+        // Test 3: CRC ERROR (Rx mode)
         #10;
         crc_check_done = 1;
         crc_rx_valid = 1;
         crc_rx_match = 0;
-        #5;
-        $display("Test 3 - CRC Error: crc_error = %b", crc_error);
         #10;
+       $display("Test 3 - CRC Error: crc_error = %b | TEC = %0d | REC = %0d | active = %b | passive = %b | bus_off = %b",
+       crc_error, tec, rec, error_active, error_passive, bus_off);
         crc_check_done = 0;
+        crc_rx_valid = 0;
 
-        // Test ACK ERROR
+        // Test 4: ACK ERROR (Tx mode)
         #10;
         tx_active = 1;
         in_ack_slot = 1;
         rx_bit = 1;
         sample_point = 1;
-        #5;
-        $display("Test 4 - ACK Error: ack_error = %b", ack_error);
         #10;
-        sample_point = 0;
+       $display("Test 4 - ACK Error: ack_error = %b | TEC = %0d | REC = %0d | active = %b | passive = %b | bus_off = %b",
+       ack_error, tec, rec, error_active, error_passive, bus_off);
         in_ack_slot = 0;
+        tx_active = 0;
 
-        
-        // Test FORM ERROR (ACK delimiter)
+        // Test 5: FORM ERROR (ACK delimiter, Rx mode)
         #10;
         sample_point = 1;
         in_ack_delimiter = 1;
         rx_bit = 0;
-        #10;
-        $display("Test 5 - Form Error (ACK delimiter): form_error = %b", form_error);
-        #10;
+        #20;
+       $display("Test 5 - Form Error: form_error = %b | TEC = %0d | REC = %0d | active = %b | passive = %b | bus_off = %b",
+       form_error, tec, rec, error_active, error_passive, bus_off);
         sample_point = 0;
         in_ack_delimiter = 0;
 
