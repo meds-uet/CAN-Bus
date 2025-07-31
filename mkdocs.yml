@@ -1,3 +1,4 @@
 site_name: CAN BUS IP Docs
+docs_dir: CAN-Bus/docs
 nav:
   - Home: readme.md
