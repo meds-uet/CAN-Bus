@@ -2,100 +2,96 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE file for details.
 // SPDX-License-Identifier: Apache-2.0
 //
-// Description: A SystemVerilog testbench designed to verify the functionality of the can_filtering module 
-// by testing frame acceptance based on CAN identifier filtering.
+// Description: 
+// A SystemVerilog testbench designed to verify the functionality of the can_bit_stuffer module.
+// It checks whether the module correctly inserts a complementary stuff bit after five consecutive 
+// identical bits (either 0 or 1) as per CAN protocol requirements.
 //
 // Author: Nimrajavaid
-// Date: 22-july-2025
-`timescale 1ns / 1ps
-`include "can_defs.svh"
+// Date: 01-August-2025
 
-module tb_can_bitstuff;
+`timescale 1ns / 10ps
 
-  // Inputs
+module tb_can_bit_stuffer;
+
   logic clk;
   logic rst_n;
   logic bit_in;
   logic sample_point;
-  logic insert_mode;
-
-  // Outputs
   logic bit_out;
-  logic insert_or_remove;
+  logic stuff_inserted;
 
-  // DUT
-  can_bitstuff dut (
+  // DUT Instance
+  can_bit_stuffer uut (
     .clk(clk),
     .rst_n(rst_n),
     .bit_in(bit_in),
     .sample_point(sample_point),
-    .insert_mode(insert_mode),
     .bit_out(bit_out),
-    .insert_or_remove(insert_or_remove)
+    .stuff_inserted(stuff_inserted)
   );
 
-  // Clock generation
+  // Clock generation: 10ns period
   always #5 clk = ~clk;
 
-  // Stimulus
-  initial begin
-    $display("Starting bit stuffing testbench...");
-    clk = 0;
-    rst_n = 0;
-    bit_in = 1;
-    sample_point = 0;
-    insert_mode = 1;  // Start with stuffing mode
-
-    #12 rst_n = 1;
-
-    // Send 5 same bits to trigger stuffing
-    repeat (5) begin
-      @(negedge clk);
-      sample_point = 1;
-      bit_in = 1;
-      @(negedge clk);
-      sample_point = 0;
-    end
-
-    // 6th bit that should trigger stuffing
-    @(negedge clk);
-    sample_point = 1;
-    bit_in = 1;
-    @(negedge clk);
-    sample_point = 0;
-
-    // Few more bits to see normal behavior
-    @(negedge clk);
-    sample_point = 1;
-    bit_in = 0;
-    @(negedge clk);
-    sample_point = 0;
-
-    // Switch to de-stuffing mode
-    insert_mode = 0;
-    same_count_reset();
-
-    // Now send alternating bits, should not trigger removal
-    repeat (6) begin
-      @(negedge clk);
-      sample_point = 1;
-      bit_in = $random % 2;
-      @(negedge clk);
-      sample_point = 0;
-    end
-
-    $display("Testbench completed.");
-    $finish;
-  end
-
-  // Helper to reset same count between stuffing and de-stuffing
-  task same_count_reset;
+  // Task to send a bit and show result
+  task send_bit(input logic b);
     begin
-      @(negedge clk);
-      rst_n = 0;
-      @(negedge clk);
-      rst_n = 1;
+      bit_in = b;
+      sample_point = 1;
+      #10; // Sample at positive edge
+      sample_point = 0;
+      #10;
+
+      $display("Time: %0t | Sent: %b | Out: %b | Stuff Inserted: %b",
+                $time, b, bit_out, stuff_inserted);
     end
   endtask
+
+  initial begin
+    $display("=== Starting CAN Bit Stuffer Test ===");
+
+    // VCD setup
+    $dumpfile("can_bit_stuffer.vcd");
+    $dumpvars(0, tb_can_bit_stuffer);
+
+    // Init
+    clk = 0;
+    rst_n = 0;
+    bit_in = 0;
+    sample_point = 0;
+    #20;
+    rst_n = 1;
+
+    // === Test 1: 5 consecutive 1s ===
+    $display("\nTest 1: 5 consecutive 1s, expect stuffing after 5th");
+    send_bit(1); //1
+    send_bit(1); //2
+    send_bit(1); //3
+    send_bit(1); //4
+    send_bit(1); //5 -> after this, stuff should be inserted
+    send_bit(1); //6 input, but output should be 0 (stuffed)
+
+    // === Test 2: Alternating bits (no stuffing) ===
+    $display("\nTest 2: Alternating bits, no stuffing expected");
+    send_bit(0);
+    send_bit(1);
+    send_bit(0);
+    send_bit(1);
+
+    // === Test 3: 5 consecutive 0s ===
+    $display("\nTest 3: 5 consecutive 0s, expect stuffing after 5th");
+    send_bit(0); //1
+    send_bit(0); //2
+    send_bit(0); //3
+    send_bit(0); //4
+    send_bit(0); //5 -> stuff should occur
+    send_bit(0); //6 input, but output should be 1 (stuffed)
+
+    #50;
+
+    $display("\n=== Finished CAN Bit Stuffer Test ===");
+    $finish;
+  end
 
 endmodule

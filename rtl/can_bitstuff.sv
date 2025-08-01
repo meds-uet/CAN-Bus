@@ -1,44 +1,43 @@
-`include "can_defs.svh"
-
-module can_bitstuff (
-    input  logic       clk,
-    input  logic       rst_n,
-    input  logic       bit_in,
-    input  logic       sample_point,
-    input  logic       insert_mode,        // 1 = stuffing, 0 = de-stuffing
-    output logic       bit_out,
-    output logic       insert_or_remove    // 1 = stuff/remove performed, 0 = pass-through
+// Copyright 2025 Maktab-e-Digital Systems Lahore.
+// Licensed under the Apache License, Version 2.0, see LICENSE file for details.
+// SPDX-License-Identifier: Apache-2.0
+// Description: A SystemVerilog testbench to verify that can_bit_stuffer 
+// correctly inserts a complementary bit after five consecutive identical bits in a CAN frame.
+// Author: Nimrajavaid
+// Date: 01-August-2025
+module can_bit_stuffer (
+  input  logic clk,
+  input  logic rst_n,
+  input  logic bit_in,
+  input  logic sample_point,     
+  output logic bit_out,
+  output logic stuff_inserted
 );
 
-    logic [2:0] same_count;
-    logic       prev_bit;
+  logic prev_bit;
+  logic [2:0] same_count;
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            same_count <= 3'd1;
-            prev_bit   <= 1'b1;
-        end else if (sample_point) begin
-            if (bit_in == prev_bit)
-                same_count <= same_count + 1'b1;
-            else
-                same_count <= 3'd1;
-            prev_bit <= bit_in;
-        end
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      prev_bit   <= 0;         // Start with neutral 0
+      same_count <= 3'd0;      // Start count at 0
+    end else if (sample_point) begin
+      if (bit_in == prev_bit)
+        same_count <= same_count + 1;
+      else
+        same_count <= 3'd1;
+
+      prev_bit <= bit_in;
     end
+  end
 
-    assign insert_or_remove = (same_count == 3'd5) ? 1'b1 : 1'b0;
+  assign stuff_inserted = (same_count == 6);
 
-    always_comb begin
-        if (insert_mode) begin
-            // Transmitter stuffing: insert opposite bit after 5 same bits
-            if (insert_or_remove)
-                bit_out = ~prev_bit;
-            else
-                bit_out = bit_in;
-        end else begin
-            // Receiver de-stuffing: skip 6th bit if same
-            bit_out = bit_in;  // Receiver logic handles skipping externally
-        end
-    end
+  always_comb begin
+    if (stuff_inserted)
+      bit_out = ~prev_bit;
+    else
+      bit_out = bit_in;
+  end
 
 endmodule
