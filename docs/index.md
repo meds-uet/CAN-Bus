@@ -14,9 +14,9 @@ The CAN Bus IP Core is designed to transmit and receive CAN frames with full sup
 
 # ***Top Level Diagram***
  
-<div align="center">
-  <img src="./docs/images_design/Arbitration.jpg" width="400" height="500">
-</div>
+<p align="center">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Arbitration.jpg" width="400" height="500">
+</p>
 
 ## ***Sub Modules***
 
