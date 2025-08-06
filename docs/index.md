@@ -115,7 +115,7 @@ This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** 
 Here is the data serialization data path:
 
 <div align="center">
-  <img src="./images_design/tx_data_array.jpg" width="600" height="500">
+  <img src="./images_design/tx_data_array.jpg" width="600" height="600">
 </div>
 
 Here is the FSM for transmitter:
