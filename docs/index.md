@@ -13,13 +13,9 @@ CAN (Controller Area Network) is a serial communication protocol originally deve
 The CAN Bus IP Core is designed to transmit and receive CAN frames with full support for arbitration, error handling, bit stuffing, and CRC checking. It is intended for integration into FPGA/ASIC-based SoC designs.
 
 # ***Top Level Diagram***
-
-<div align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/can_transmitter.png" width="600" height="400">
-</div>
  
 <div align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/top%20module.jpg" width="600" height="400">
+  <img src="./images_design/top%20module.jpg" width="600" height="400">
 </div>
 
 ## ***Sub Modules***
