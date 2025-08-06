@@ -33,7 +33,7 @@ module can_error_detection (
     output logic crc_error,
     output logic form_error,
     output logic ack_error,
-    output logic [8:0] tec,
+    output logic [4:0] tec,
     output logic [7:0] rec,
     output logic error_active,
     output logic error_passive,
@@ -48,46 +48,29 @@ module can_error_detection (
      (tx_bit != rx_bit) &  ~((tx_bit == 1'b1) &&(rx_bit == 1'b0) && (in_arbitration ||in_ack_slot ||sending_error_flag_passive));
 // ACK ERROR
     assign ack_error = sample_point & tx_active & in_ack_slot & (rx_bit == 1'b1);  
+// FORM ERROR 
+    assign form_error= sample_point & !rx_bit & (in_crc_delimiter || in_ack_delimiter || in_eof);
 
-// FORM ERROR:
-always_ff @(posedge clk or negedge rst) begin
-    if (!rst) begin
-        form_error <= 1'b0;
-    end else if (sample_point) begin
-        if (
-            (in_crc_delimiter  && (rx_bit != 1'b1)) ||   // CRC delimiter must be recessive
-            (in_ack_delimiter  && (rx_bit != 1'b1)) ||   // ACK delimiter must be recessive
-            (in_eof            && (rx_bit != 1'b1))      // EOF field must be all recessive
-        ) begin
-            form_error <= 1'b1;
-        end else begin
-            form_error <= 1'b0;
-        end
-    end else begin
-        form_error <= 1'b0;
-    end
-end
 // CRC ERROR
 assign crc_error = crc_check_done & crc_rx_valid & ~crc_rx_match;
 always_ff @(posedge clk or negedge rst) begin
         if (!rst) begin
-            tec <= 9'd0;
+            tec <= 5'd0;
             rec <= 8'd0;
         end else begin
             // Transmit errors 
             if (tx_active && (bit_error || form_error || ack_error)) begin
-                if (tec <= 9'd503)   // Prevent overflow beyond 511
-                    tec <= tec + 9'd8;
-                else
-                    tec <= 9'd511;
+                if (tec <= 5'd31)   // Prevent overflow beyond 511
+                    tec <= tec + 1; 
             end
+
+
 
             // Receive errors 
             if (!tx_active && (bit_error || form_error || stuff_error || crc_error)) begin
                  if (rec < 8'd254)   // Only increment if less than 255
-                         rec <= rec + 8'd1;
-                else
-                     rec <= 8'd255;   
+                         rec <= rec + 1;
+                 
          end 
      end
 end
@@ -99,13 +82,13 @@ always_ff @(posedge clk or negedge rst) begin
         bus_off       <= 1'b0;
     end else begin
         // Bus-Off condition
-        if (tec >= 9'd256) begin
+        if (tec >= 5'd31) begin
             bus_off       <= 1'b1;
             error_passive <= 1'b0;
             error_active  <= 1'b0;
 
         // Passive state
-        end else if ((tec >= 9'd128) || (rec >= 8'd128)) begin
+        end else if ((tec >= 5'd16) || (rec >= 8'd128)) begin
             bus_off       <= 1'b0;
             error_passive <= 1'b1;
             error_active  <= 1'b0;
