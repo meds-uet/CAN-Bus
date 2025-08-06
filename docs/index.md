@@ -15,7 +15,7 @@ The CAN Bus IP Core is designed to transmit and receive CAN frames with full sup
 # ***Top Level Diagram***
  
 <p align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Arbitration.jpg" width="400" height="500">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/top%20module.jpg" width="400" height="500">
 </p>
 
 ## ***Sub Modules***
@@ -115,13 +115,13 @@ This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** 
 Here is the data serialization data path:
 
 <p align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/can_transmitter.png?raw=true width"="400" height="500">
+  <img src="https://github.com/meds-uet/CAN-Bus/tree/main/docs/images_design" width="400" height="500">
 </p>
 
 Here is the FSM for transmitter:
 
 <p align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/Transmitter%20FSM.png?raw=true"="400" height="500">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Transmitter%20FSM.png" width="400" height="500">
 </p>
 
 
@@ -209,7 +209,7 @@ The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sa
 Here is the FSM for receiver:
 
 <p align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/Receiver%20FSM.png"="400" height="500">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Receiver%20FSM.png" width="400" height="500">
 </p>
 
 ## `can_bitstuff` Module Documentation
@@ -266,13 +266,13 @@ In de-stuffing mode (`insert_mode = 0`):
 ## Bit Stuffing Data Path
 
 <p align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/Bit_stuffing.png?raw=true"="400" height="500">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Bit_stuffing.png" width="400" height="500">
 </p>
 
 ## Bit Destuffing Data Path
 
 <p align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/de_stuffing.png?raw=true"="400" height="500">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/de_stuffing.png" width="400" height="500">
 </p>
 
 ## CAN Arbitration Module
@@ -324,5 +324,5 @@ This module is used in CAN transmitters to detect if they have lost arbitration 
 ### Arbitration Design Diagram
 
 <p align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/Arbitration.jpg?raw=true"="400" height="500">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Arbitration.jpg" width="400" height="500">
 </p>
