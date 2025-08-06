@@ -15,7 +15,7 @@ The CAN Bus IP Core is designed to transmit and receive CAN frames with full sup
 # ***Top Level Diagram***
  
 <div align="center">
-  <img src="./images_design/top%20module.jpg" width="600" height="400">
+  <img src="./images_design/top_module.jpg" width="600" height="400">
 </div>
 
 ## ***Sub Modules***
@@ -115,13 +115,13 @@ This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** 
 Here is the data serialization data path:
 
 <div align="center">
-  <img src="./images_design/can_transmitter.png" width="600" height="400">
+  <img src="./images_design/tx_data_array.jpg" width="600" height="400">
 </div>
 
 Here is the FSM for transmitter:
 
 <div align="center">
-  <img src="./images_design/Transmitter%20FSM.png" width="400" height="500">
+  <img src="./images_design/Transmitter_FSM.png" width="400" height="500">
 </div>
 
 
@@ -209,7 +209,7 @@ The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sa
 Here is the FSM for receiver:
 
 <div align="center">
-  <img src="./images_design/Receiver%20FSM.png" width="400" height="500">
+  <img src="./images_design/Receiver_FSM.png" width="400" height="500">
 </div>
 
 ## `can_bitstuff` Module Documentation
@@ -266,13 +266,13 @@ In de-stuffing mode (`insert_mode = 0`):
 ## Bit Stuffing Data Path
 
 <div align="center">
-  <img src="./images_design/Bit_stuffing.png" width="400" height="500">
+  <img src="./images_design/bit_stuffing.jpg" width="400" height="500">
 </div>
 
 ## Bit Destuffing Data Path
 
 <div align="center">
-  <img src="./images_design/de_stuffing.png" width="400" height="500">
+  <img src="./images_design/de_stuffing.jpg" width="400" height="500">
 </div>
 
 ## CAN Arbitration Module
