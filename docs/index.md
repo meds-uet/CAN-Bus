@@ -324,5 +324,5 @@ This module is used in CAN transmitters to detect if they have lost arbitration 
 ### Arbitration Design Diagram
 
 <div align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Arbitration.jpg" width="400" height="500">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Arbitration.jpg" width="600" height="400">
 </div>
