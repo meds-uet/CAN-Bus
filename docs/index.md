@@ -15,7 +15,7 @@ The CAN Bus IP Core is designed to transmit and receive CAN frames with full sup
 # ***Top Level Diagram***
  
 <div align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/top%20module.jpg" width="400" height="500">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/top%20module.jpg" width="600" height="400">
 </div>
 
 ## ***Sub Modules***
@@ -115,7 +115,7 @@ This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** 
 Here is the data serialization data path:
 
 <div align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/can_transmitter.png" width="400" height="500">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/can_transmitter.png" width="600" height="400">
 </div>
 
 Here is the FSM for transmitter:
