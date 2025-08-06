@@ -1,3 +1,16 @@
+// Copyright 2025 Maktab-e-Digital Systems Lahore.
+// Licensed under the Apache License, Version 2.0, see LICENSE file for details.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Description:
+// This testbench stimulates and verifies
+// how your CAN error handling module behaves 
+// under various types of CAN protocol errors: bit, stuff, CRC, ACK, and form errors.
+//
+// Author: Aryam Shabbir
+// Date: 6th August,2025
+
+
 `timescale 1ns/1ps
 
 module tb_can_error_detection;

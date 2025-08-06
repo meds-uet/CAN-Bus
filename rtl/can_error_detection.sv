@@ -1,3 +1,20 @@
+// Copyright 2025 Maktab-e-Digital Systems Lahore.
+// Licensed under the Apache License, Version 2.0, see LICENSE file for details.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Description:
+// This module implements CAN bus error detection
+// and error state management logic according to the CAN protocol
+// It detects five key error types (bit, stuff, form, CRC, ACK), 
+// updates TEC (Transmit Error Counter) and REC (Receive Error Counter),
+// and manages the node’s error state (error_active, error_passive, bus_off).
+//
+// Author: Aryam Shabbir
+// Date: 6th August,2025
+
+
+
+
 module can_error_detection (
     input  logic clk,
     input  logic rst,
