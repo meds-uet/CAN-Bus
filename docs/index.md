@@ -14,9 +14,9 @@ The CAN Bus IP Core is designed to transmit and receive CAN frames with full sup
 
 # ***Top Level Diagram***
  
-<p align="center">
+<div align="center">
   <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/top%20module.jpg" width="400" height="500">
-</p>
+</div>
 
 ## ***Sub Modules***
 
@@ -114,15 +114,15 @@ This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** 
 
 Here is the data serialization data path:
 
-<p align="center">
-  <img src="https://github.com/meds-uet/CAN-Bus/tree/main/docs/images_design" width="400" height="500">
-</p>
+<div align="center">
+  <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/can_transmitter.png" width="400" height="500">
+</div>
 
 Here is the FSM for transmitter:
 
-<p align="center">
+<div align="center">
   <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Transmitter%20FSM.png" width="400" height="500">
-</p>
+</div>
 
 
 ## CAN Receiver Module (`can_receiver`)
@@ -208,9 +208,9 @@ The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sa
 
 Here is the FSM for receiver:
 
-<p align="center">
+<div align="center">
   <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Receiver%20FSM.png" width="400" height="500">
-</p>
+</div>
 
 ## `can_bitstuff` Module Documentation
 
@@ -265,15 +265,15 @@ In de-stuffing mode (`insert_mode = 0`):
 
 ## Bit Stuffing Data Path
 
-<p align="center">
+<div align="center">
   <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Bit_stuffing.png" width="400" height="500">
-</p>
+</div>
 
 ## Bit Destuffing Data Path
 
-<p align="center">
+<div align="center">
   <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/de_stuffing.png" width="400" height="500">
-</p>
+</div>
 
 ## CAN Arbitration Module
 
@@ -323,6 +323,6 @@ This module is used in CAN transmitters to detect if they have lost arbitration 
 
 ### Arbitration Design Diagram
 
-<p align="center">
+<div align="center">
   <img src="https://github.com/meds-uet/CAN-Bus/blob/main/docs/images_design/Arbitration.jpg" width="400" height="500">
-</p>
+</div>
