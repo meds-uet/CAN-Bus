@@ -326,3 +326,83 @@ This module is used in CAN transmitters to detect if they have lost arbitration 
 <div align="center">
   <img src="./images_design/Arbitration.jpg" width="600" height="400">
 </div>
+
+# `can_tx_priority` 
+ 
+The `can_tx_priority` module implements a **priority-based CAN transmit request buffer**.  
+It maintains a sorted list of pending CAN messages, always transmitting the frame with the **lowest CAN ID** (highest priority) first.
+
+### Key Features
+- **Preemption Support** — A newly arrived higher-priority frame can replace the currently transmitting frame.
+- **Automatic Buffer Reordering** — Frames in the buffer remain sorted by priority.
+- **Write/Read Enable Control** — Prevents data overwrites and unauthorized reads.
+- **Full and Empty Flags** — For buffer status monitoring.
+
+---
+
+## Ports
+
+| Name        | Direction | Width      | Description |
+|-------------|-----------|------------|-------------|
+| `clk`       | Input     | 1          | Clock signal |
+| `rst`       | Input     | 1          | Asynchronous reset |
+| `we`        | Input     | 1          | Write enable signal |
+| `req_id`    | Input     | 11         | Requested CAN ID |
+| `req_dlc`   | Input     | 4          | Requested Data Length Code |
+| `req_data`  | Input     | 8×8        | Requested data payload bytes |
+| `re`        | Input     | 1          | Read enable (transmission complete) |
+| `start_tx`  | Output    | 1          | Indicates a frame is ready to transmit |
+| `tx_id`     | Output    | 11         | Transmit CAN ID |
+| `tx_dlc`    | Output    | 4          | Transmit Data Length Code |
+| `tx_data`   | Output    | 8×8        | Transmit payload bytes |
+| `full`      | Output    | 1          | Buffer is full |
+| `empty`     | Output    | 1          | Buffer is empty |
+
+---
+
+## Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `N`       | 8       | Number of buffer slots |
+
+---
+
+## 4. Operation
+
+### Write Operation
+- When `we` is asserted and the buffer is **not full**, a new CAN frame is inserted.
+- If the transmitter (`tx_reg`) is **idle**, the frame goes directly to transmission.
+- If the incoming frame has **higher priority** (lower `req_id`) than the current transmitting frame, **preemption** occurs:
+  1. The current transmitting frame is pushed into the buffer (sorted position).
+  2. The new frame becomes the active transmit frame.
+- Otherwise, the frame is inserted into the buffer in sorted order.
+
+### Read Operation
+- When `re` is asserted and the buffer is **not empty**:
+  1. The next frame in the buffer (lowest CAN ID) is moved into the transmitter register.
+  2. Buffer is shifted up to fill the gap.
+- If buffer becomes empty after read, `tx_reg` is invalidated.
+
+---
+
+##  Status Flags
+- `full` — Asserted when `count == N`
+- `empty` — Asserted when no valid transmit frame exists and buffer is empty
+
+---
+
+## Priority Rules
+- **Lower CAN ID → Higher Priority**
+- Preemption replaces currently transmitting frame if incoming frame has lower ID.
+
+---
+
+## Design Diagram
+
+<div align="center">
+  <img src="./images_design/priority_module.png" width="600" height="400">
+</div>
+
+
+
