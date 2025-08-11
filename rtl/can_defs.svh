@@ -97,11 +97,12 @@ typedef enum logic [4:0] {
 } type_can_frame_states_e;
 
   // Structure for a transmission request
-  typedef struct {
-    logic [10:0] id;           // CAN ID
-    logic [3:0]  dlc;          // Data Length Code
-    logic [7:0]  data [8];     // Data bytes
-    logic        valid;        // Valid bit: 1 means occupied, 0 means free
-  } tx_req_t;
+typedef struct {
+  logic        valid;         // Indicates if this request is active
+  logic [10:0] id;            // 11-bit standard CAN ID
+  logic [3:0]  dlc;           // Data length code (0 to 8)
+  logic [7:0]  data[8];       // Data payload (up to 8 bytes)
+} tx_req_t;
+
 
 `endif // CAN_DEFS

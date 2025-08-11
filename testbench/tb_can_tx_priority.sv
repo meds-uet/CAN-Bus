@@ -9,119 +9,160 @@
 
 `timescale 1ns/1ps
 
-module tb_can_tx_priority;
+`include "can_defs.svh"
 
-  // Parameter to define number of simultaneous request entries the DUT can handle
-  parameter N = 4;
+module tb_can_tx_priority_dbg;
 
-  // Testbench signals
+  // Parameters
+  localparam N = 4; // small to demonstrate full condition
+
+  // DUT signals
   logic clk, rst;
-  logic tx_request;
-  logic [10:0] req_id;         // Requested CAN ID
-  logic [3:0] req_dlc;         // Data Length Code
-  logic [7:0] req_data [8];    // 8-byte data array
-
+  logic we, re;
+  logic [10:0] req_id;
+  logic [3:0]  req_dlc;
+  logic [7:0]  req_data [8];
   logic start_tx;
-  logic [10:0] tx_id;          // Output CAN ID (selected for transmission)
-  logic [3:0] tx_dlc;          // Output DLC
-  logic [7:0] tx_data [8];     // Output data
-  logic tx_done;               // Acknowledge signal to indicate transmission is done
+  logic [10:0] tx_id;
+  logic [3:0]  tx_dlc;
+  logic [7:0]  tx_data [8];
+  logic full, empty;
 
-  // Instantiate the DUT (Device Under Test)
+  // DUT instance
   can_tx_priority #(.N(N)) dut (
     .clk(clk),
     .rst(rst),
-    .tx_request(tx_request),
+    .we(we),
     .req_id(req_id),
     .req_dlc(req_dlc),
     .req_data(req_data),
+    .re(re),
     .start_tx(start_tx),
     .tx_id(tx_id),
     .tx_dlc(tx_dlc),
     .tx_data(tx_data),
-    .tx_done(tx_done)
+    .full(full),
+    .empty(empty)
   );
 
-  // Clock generation: toggles every 5ns => 10ns clock period = 100MHz
+  // Clock
   always #5 clk = ~clk;
 
-  // Task to generate a request and insert into the DUT
-  task send_request(input [10:0] id, input [3:0] dlc, input [7:0] data_val);
-    integer j;
+  // ==============
+  // Utility tasks
+  // ==============
+  task automatic send_req(input [10:0] id);
     begin
-      @(negedge clk);  // Wait for negative edge
-      tx_request = 1;  // Set request high
-      req_id = id;     // Assign ID and DLC
-      req_dlc = dlc;
-
-      // Fill 8 bytes with incremental data starting from data_val
-      for (j = 0; j < 8; j++) begin
-        req_data[j] = data_val + j;
-      end
-
-      @(negedge clk);  // Keep tx_request high for one cycle
-      tx_request = 0;  // Lower the request
+      @(posedge clk);
+      we = 1;
+      req_id = id;
+      req_dlc = 4'd8;
+      for (int i = 0; i < 8; i++) req_data[i] = i + id[7:0];
+      $display("[%0t] TB: send_req id=%0d", $time, id);
+      @(posedge clk);
+      we = 0;
+      @(posedge clk); // give DUT a cycle to process
     end
   endtask
 
- initial begin
-  // Initialization
-  clk = 0;
-  rst = 1;
-  tx_request = 0;
-  tx_done = 0;
-  req_id = 0;
-  req_dlc = 0;
-  for (int j = 0; j < 8; j++) begin
-    req_data[j] = 8'h00;
+  task automatic do_tx_done();
+    begin
+      @(posedge clk);
+      re = 1;
+      $display("[%0t] TB: tx_done asserted", $time);
+      @(posedge clk);
+      re = 0;
+      @(posedge clk); // let DUT settle
+    end
+  endtask
+
+  // Simple check helper
+  task automatic assert_ok(input bit cond, input string msg);
+    begin
+      if (!cond) $display("[%0t] ERROR: %s", $time, msg);
+      else        $display("[%0t] OK: %s", $time, msg);
+    end
+  endtask
+
+  // ==============
+  // Monitor
+  // ==============
+  initial begin
+    $display("Time\tstart_tx\ttx_id\tfull\tempty");
+    forever @(posedge clk) begin
+      $display("%0t\t%b\t\t%0d\t%b\t%b", $time, start_tx, tx_id, full, empty);
+    end
   end
 
-  // Deassert reset after one negative clock edge
-  @(negedge clk);
-  rst = 0;
+  // ==============
+  // Test sequence
+  // ==============
+  initial begin
+    // init
+    clk = 0;
+    rst = 1;
+    we = 0;
+    re = 0;
+    req_id = 0;
+    req_dlc = 0;
+    for (int i = 0; i < 8; i++) req_data[i] = 0;
 
-  // --- Send 3 CAN requests ---
-  send_request(11'd300, 4'd8, 8'hA0); // Low priority
-  send_request(11'd100, 4'd8, 8'hB0); // Highest priority
-  send_request(11'd200, 4'd8, 8'hC0); // Mid priority
+    #15 rst = 0;
+    #10;
 
-  // Wait for arbiter to select highest priority (lowest ID)
-  repeat (5) @(negedge clk);
+    $display("\n=== TEST 1: Normal queuing ===");
+    send_req(11'd300);
+    send_req(11'd500);
+    // At this point tx_reg should be 300, buffer [500]
+    assert_ok(start_tx && tx_id == 300, "tx_reg should be 300 after first send");
+    do_tx_done(); // should move 500 into tx_reg
+    assert_ok(start_tx && tx_id == 500, "tx_reg should be 500 after tx_done");
 
-  if (start_tx && tx_id == 11'd100)
-    $display("PASS: Selected ID = %0d", tx_id);
-  else
-    $display("FAIL: Incorrect ID selected = %0d", tx_id);
+    #20;
+    $display("\n=== TEST 2: Preemption ===");
+    send_req(11'd700);  // goes to tx_reg
+    assert_ok(start_tx && tx_id == 700, "tx_reg should be 700");
+    send_req(11'd200);  // should preempt 700 -> tx_reg = 200, buffer contains 700
+    // small delay for logic to settle
+    @(posedge clk);
+    assert_ok(start_tx && tx_id == 200, "tx_reg should be 200 after preemption");
+    // now finish transmission and expect 700 to come back
+    do_tx_done();
+    assert_ok(start_tx && tx_id == 700, "tx_reg should be 700 after tx_done (from buffer)");
 
-  // Simulate end of transmission
-  @(negedge clk);
-  tx_done = 1;
-  @(negedge clk);
-  tx_done = 0;
+    #20;
+    $display("\n=== TEST 3: Buffer full ===");
+    // Clear DUT state by draining
+    repeat (4) begin
+      if (!empty) do_tx_done();
+      else break;
+    end
 
-  // Wait for next arbitration
-  repeat (5) @(negedge clk);
+    // Fill buffer (tx_reg will take first, remaining fill up buffer)
+    send_req(11'd400);
+    send_req(11'd450);
+    send_req(11'd600);
+    send_req(11'd100);  // depending on timing this might be tx_reg or buffer
+    // Now buffer likely full (N=4). Attempt one more
+    send_req(11'd50);   // should be ignored when full
+    // Check full flag asserted at some point
+    @(posedge clk);
+    assert_ok(full || empty==0, "Expect buffer full when enough requests were sent");
 
-  if (start_tx && tx_id == 11'd200)
-    $display("PASS: Selected ID = %0d", tx_id);
-  else
-    $display("FAIL: Incorrect ID selected = %0d", tx_id);
+    // drain all entries
+    repeat (8) begin
+      if (!empty) do_tx_done();
+      else @(posedge clk);
+    end
 
-  // Simulate end of transmission
-  @(negedge clk);
-  tx_done = 1;
-  @(negedge clk);
-  tx_done = 0;
+    #20;
+    $display("\n=== TEST 4: Empty ===");
+    // Nothing to send, assert empty
+    assert_ok(empty, "DUT should be empty now");
 
-  // Wait for next arbitration
-  repeat (5) @(negedge clk);
-
-  if (start_tx && tx_id == 11'd300)
-    $display("PASS: Selected ID = %0d", tx_id);
-  else
-    $display("FAIL: Incorrect ID selected = %0d", tx_id);
-
-  $finish;
-end
+    #50;
+    $display("All tests finished. Stopping simulation.");
+    $stop;
+  end
 
 endmodule

@@ -1,3 +1,14 @@
+// Copyright 2025 Maktab-e-Digital Systems Lahore.
+// Licensed under the Apache License, Version 2.0, see LICENSE file for details.
+// SPDX-License-Identifier: Apache-2.0
+
+// Description: can_tx_priority — Buffers multiple CAN transmit requests, 
+// always transmitting the lowest CAN ID (highest priority) first,
+// with preemption support for new higher-priority messages and automatic buffer reordering.
+
+// Author: Ayesha Qadir
+// Date: 15 July, 2025
+
 `include "can_defs.svh"
 
 module can_tx_priority #(
@@ -38,7 +49,7 @@ module can_tx_priority #(
         tx_reqs[i].valid <= 0;
       end
     end else begin
-      // ---------------- WRITE OPERATION ----------------
+      // WRITE OPERATION 
       if (we && count < N) begin
         // Prepare new request
         tx_req_t new_req;
@@ -84,7 +95,7 @@ module can_tx_priority #(
         end
       end
 
-      // ---------------- READ OPERATION ----------------
+      //  READ OPERATION 
       if (re) begin
         if (count > 0) begin
           // Move first buffer entry into tx_reg
