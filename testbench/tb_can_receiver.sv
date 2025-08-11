@@ -1,95 +1,122 @@
-`timescale 1ns / 1ps
-`include "can_defs.svh"
+// Copyright 2025 Maktab-e-Digital Systems Lahore.
+// Licensed under the Apache License, Version 2.0
+// Description: Testbench for receiver FSM-based module
+// Author: Nimra Javaid
+// Date: 11-Aug-2025
+
+`timescale 1ns/1ps
 
 module tb_can_receiver;
 
-  // Inputs
-  logic clk, rst_n;
-  logic rx_point;
-  logic rx_bit;
+  logic clk;
+  logic rst_n;
+  logic rx_bit_curr;
+  logic sample_point;
+  logic remove_stuff_bit;
 
-  // Outputs
+  logic [7:0]  rx_data_array [7:0];
+  logic        rx_done_flag;
   logic [10:0] rx_id_std;
   logic [17:0] rx_id_ext;
   logic        rx_ide;
-  logic        rx_rtr;
   logic [3:0]  rx_dlc;
-  logic [7:0]  rx_data [0:7];
-  logic [14:0] rx_crc;
-  logic        rx_done;
+  logic        rx_remote_req;
 
-  // DUT
-  can_receiver uut (
+  // Instantiate DUT
+  can_receiver dut (
     .clk(clk),
     .rst_n(rst_n),
-    .rx_point(rx_point),
-    .rx_bit(rx_bit),
+    .rx_bit_curr(rx_bit_curr),
+    .sample_point(sample_point),
+    .remove_stuff_bit(remove_stuff_bit),
+    .rx_data_array(rx_data_array),
+    .rx_done_flag(rx_done_flag),
     .rx_id_std(rx_id_std),
     .rx_id_ext(rx_id_ext),
     .rx_ide(rx_ide),
-    .rx_rtr(rx_rtr),
     .rx_dlc(rx_dlc),
-    .rx_data(rx_data),
-    .rx_crc(rx_crc),
-    .rx_done(rx_done)
+    .rx_remote_req(rx_remote_req)
   );
-
-  // Clock
   always #5 clk = ~clk;
+  always #10 sample_point = ~sample_point;
 
-  // Example Frame
-  bit [54:0] frame = {
-    1'b0,                     // SOF
-    11'b00100100011,         // ID = 0x123
-    1'b0,                    // RTR
-    1'b0,                    // IDE
-    1'b0,                    // r0
-    4'b0001,                 // DLC = 1
-    8'b10101011,             // Data = 0xAB
-    15'b001001000110100,     // CRC dummy
-    1'b1,                    // CRC delimiter
-    1'b1,                    // ACK slot
-    1'b1,                    // ACK delimiter
-    7'b1111111,              // EOF
-    3'b111                   // IFS
-  };
+  task send_bit(input bit value);
+    begin
+      @(posedge sample_point);
+      rx_bit_curr = value;
+    end
+  endtask
+
+  // Send multiple bits task
+  task send_bits(input int num_bits, input bit value);
+    for (int i = 0; i < num_bits; i++) begin
+      send_bit(value);
+    end
+  endtask
 
   initial begin
-    $display("=== Starting CAN Receiver Testbench ===");
-
-    // Initialize
     clk = 0;
+    sample_point = 0;
+    remove_stuff_bit = 0;
+    rx_bit_curr = 1; // idle
     rst_n = 0;
-    rx_point = 0;
-    rx_bit = 1;
 
-    // Reset
-    #20; rst_n = 1;
-    #20;
+    #20 rst_n = 1;
 
-    // Send frame bits
-    for (int i = 0; i < $bits(frame); i++) begin
-      rx_bit = frame[$bits(frame)-1 - i];
-      rx_point = 1;
-      #10;
-      rx_point = 0;
-      #10;
-    end
+    // SOF
+    send_bit(0);
 
-    //  Wait for rx_done and then wait one clk edge to get output
-    @(posedge rx_done);
-    @(posedge clk); // Wait one more clock to ensure data is updated
+    // 11-bit ID = 0x7FF
+    for (int i = 10; i >= 0; i--)
+      send_bit(1);
 
-    $display("\n=== Frame Received ===");
-    $display("  rx_id_std  = 0x%03h", rx_id_std);
-    $display("  rx_rtr     = %0b",    rx_rtr);
-    $display("  rx_ide     = %0b",    rx_ide);
-    $display("  rx_dlc     = %0d",    rx_dlc);
-    $display("  rx_data[0] = 0x%02h", rx_data[0]);
-    $display("  rx_crc     = 0x%04h", rx_crc);
-    $display("=========================");
+    // RTR
+    send_bit(0);
 
-    $finish;
+    // IDE
+    send_bit(0);
+
+    // r0
+    send_bit(0);
+
+    // DLC = 2 (0010)
+    send_bit(0);
+    send_bit(0);
+    send_bit(1);
+    send_bit(0);
+
+    // Data byte 1 = 0xAB
+    send_bit(1); send_bit(0); send_bit(1); send_bit(0);
+    send_bit(1); send_bit(0); send_bit(1); send_bit(1);
+
+    // Data byte 2 = 0xCD
+    send_bit(1); send_bit(1); send_bit(0); send_bit(0);
+    send_bit(1); send_bit(1); send_bit(0); send_bit(1);
+
+    // CRC (15 bits dummy = all 1)
+    send_bits(15, 1);
+
+    // CRC delimiter
+    send_bit(1);
+
+    // ACK
+    send_bit(0);
+
+    // ACK delimiter
+    send_bit(1);
+
+    // EOF (7 bits recessive)
+    send_bits(7, 1);
+
+    // IFS (3 bits recessive)
+    send_bits(3, 1);
+
+    // Wait for done
+    wait (rx_done_flag == 1);
+    $display("Frame received: ID=%h DLC=%0d Data0=%h Data1=%h",
+             rx_id_std, rx_dlc, rx_data_array[0], rx_data_array[1]);
+
+    #50 $finish;
   end
 
 endmodule
