@@ -1,107 +1,131 @@
-//Copyright 2025 Maktab-e-Digital Systems Lahore.
-//Liscensed under the Apache Liscense, Version 2.0, see LISCENSE file for details.
-//SPDX-Liscense-Identifier: Apache-2.0
-
-//Description:This module buffers multiple CAN transmit requests and
-// always selects the one with the lowest CAN ID (highest priority) for transmission.
-
-//Author: Ayesha Qadir
-//Date: 15 July,2025
-
 `include "can_defs.svh"
-module can_tx_priority #(parameter N = 4) (
 
-  input  logic clk,              // Clock signal
-  input  logic rst,              // Asynchronous reset
+module can_tx_priority #(
+  parameter int N = 8
+)(
+  input  logic clk,
+  input  logic rst,
 
-  // New transmission request
-  input  logic        tx_request,        // Assert this to send a new message
-  input  logic [10:0] req_id,            // CAN ID of the message
-  input  logic [3:0]  req_dlc,           // Data Length Code (how many bytes)
-  input  logic [7:0]  req_data [8],      // Data bytes (max 8 bytes)
-  input  logic        tx_done,           // Asserted when message has been transmitted
+  // Write control
+  input  logic        we,         // Write enable
+  input  logic [10:0] req_id,
+  input  logic [3:0]  req_dlc,
+  input  logic [7:0]  req_data [0:7],
 
-  // Output: next message to transmit
-  output logic        start_tx,          // Signal to start transmission
-  output logic [10:0] tx_id,             // ID of message to transmit
-  output logic [3:0]  tx_dlc,            // Data Length Code
-  output logic [7:0]  tx_data [8]        // Data bytes to send
+  // Read control (transmission done)
+  input  logic        re,         // Read enable
+
+  // Output: currently transmitting message
+  output logic        start_tx,
+  output logic [10:0] tx_id,
+  output logic [3:0]  tx_dlc,
+  output logic [7:0]  tx_data [8],
+
+  // Status
+  output logic        full,
+  output logic        empty
 );
 
-  localparam int CLOG2_N = 
-  (N <= 2) ? 1 :
-  (N <= 4) ? 2 :
-  (N <= 8) ? 3 :
-  (N <= 16) ? 4 :
-  (N <= 32) ? 5 :
-  (N <= 64) ? 6 :
-  (N <= 128) ? 7 :
-  (N <= 256) ? 8 : 9;
+  tx_req_t tx_reqs [N];  // Buffer
+  tx_req_t tx_reg;       // Currently transmitting frame
+  int count;             // Buffer entry count
 
-  tx_req_t tx_reqs [N];
-  logic [CLOG2_N:0] i_sel;
-
-
-// --- Insert new TX request or clear completed one ---
   always_ff @(posedge clk or posedge rst) begin
     if (rst) begin
-      // On reset, clear all request slots
+      tx_reg.valid <= 0;
+      count        <= 0;
       for (int i = 0; i < N; i++) begin
         tx_reqs[i].valid <= 0;
       end
     end else begin
-      // Insert a new request if tx_request is high
-      if (tx_request) begin
-        for (int i = 0; i < N; i++) begin
-          if (!tx_reqs[i].valid) begin
-            tx_reqs[i].valid <= 1;
-            tx_reqs[i].id    <= req_id;
-            tx_reqs[i].dlc   <= req_dlc;
-            for (int j = 0; j < 8; j++) begin
-              tx_reqs[i].data[j] <= req_data[j];
-            end
-            break; // Stop after inserting one request
+      // ---------------- WRITE OPERATION ----------------
+      if (we && count < N) begin
+        // Prepare new request
+        tx_req_t new_req;
+        new_req.valid = 1;
+        new_req.id    = req_id;
+        new_req.dlc   = req_dlc;
+        for (int j = 0; j < 8; j++) begin
+          new_req.data[j] = req_data[j];
+        end
+
+        if (!tx_reg.valid) begin
+          // If TX is idle, put directly into tx_reg
+          tx_reg = new_req;
+        end
+        else if (new_req.id < tx_reg.id) begin
+          // Preemption: shift buffer up and insert old tx_reg
+          int pos;
+          pos=0;
+          while (pos < count && tx_reqs[pos].id <= tx_reg.id) begin
+            pos++;
           end
+          for (int i = count; i > pos; i--) begin
+            tx_reqs[i] = tx_reqs[i-1];
+          end
+          tx_reqs[pos] = tx_reg;
+          count++;
+
+          // Replace tx_reg with new high-priority request
+          tx_reg = new_req;
+        end
+        else begin
+          // Normal insert into buffer (sorted by ID)
+          int pos;
+          pos=0;
+          while (pos < count && tx_reqs[pos].id <= new_req.id) begin
+            pos++;
+          end
+          for (int i = count; i > pos; i--) begin
+            tx_reqs[i] = tx_reqs[i-1];
+          end
+          tx_reqs[pos] = new_req;
+          count++;
         end
       end
 
-      // Clear the selected request when transmission is done
-      if (tx_done && tx_reqs[i_sel].valid) begin
-        tx_reqs[i_sel].valid <= 0;
+      // ---------------- READ OPERATION ----------------
+      if (re) begin
+        if (count > 0) begin
+          // Move first buffer entry into tx_reg
+          tx_reg = tx_reqs[0];
+          // Shift buffer up
+          for (int i = 0; i < count-1; i++) begin
+            tx_reqs[i] = tx_reqs[i+1];
+          end
+          tx_reqs[count-1].valid = 0;
+          count--;
+        end else begin
+          // No more data
+          tx_reg.valid = 0;
+        end
       end
     end
   end
 
-  // --- Select the request with the lowest ID (highest priority) ---
+  // Status flags
   always_comb begin
-    i_sel = 0; // Default to index 0
-    for (int i = 1; i < N; i++) begin
-      // Choose the request with the lowest ID among valid entries
-      if (tx_reqs[i].valid &&
-         (!tx_reqs[i_sel].valid || tx_reqs[i].id < tx_reqs[i_sel].id)) begin
-        i_sel = i;
+    full  = (count == N);
+    empty = (!tx_reg.valid && count == 0);
+  end
+
+  // Output from tx_reg
+  always_comb begin
+    if (tx_reg.valid) begin
+      start_tx = 1;
+      tx_id    = tx_reg.id;
+      tx_dlc   = tx_reg.dlc;
+      for (int j = 0; j < 8; j++) begin
+        tx_data[j] = tx_reg.data[j];
+      end
+    end else begin
+      start_tx = 0;
+      tx_id    = '0;
+      tx_dlc   = '0;
+      for (int j = 0; j < 8; j++) begin
+        tx_data[j] = '0;
       end
     end
   end
-
-  // --- Output the selected request ---
-always_comb begin
-  if (tx_reqs[i_sel].valid) begin
-    tx_id    = tx_reqs[i_sel].id;
-    tx_dlc   = tx_reqs[i_sel].dlc;
-    start_tx = 1;
-    for (int j = 0; j < 8; j++) begin
-      tx_data[j] = tx_reqs[i_sel].data[j];
-    end
-  end else begin
-    tx_id    = '0;
-    tx_dlc   = '0;
-    start_tx = 0;
-    for (int j = 0; j < 8; j++) begin
-      tx_data[j] = '0;
-    end
-  end
-end
-
 
 endmodule
