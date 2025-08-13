@@ -134,7 +134,7 @@ Here is the data serialization data path:
 Here is the FSM for transmitter:
 
 <div align="center">
-  <img src="./images_design/Transmitter_FSM.png" width="400" height="500">
+  <img src="./images_design/transmitter_FSM.jpg" width="400" height="500">
 </div>
 
 
@@ -220,7 +220,7 @@ The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sa
 Here is the FSM for receiver:
 
 <div align="center">
-  <img src="./images_design/Receiver_FSM.png" width="400" height="500">
+  <img src="./images_design/receiver_FSM.jpg" width="400" height="500">
 </div>
 
 ## **`CAN_Bit_Stuffer`** Module
