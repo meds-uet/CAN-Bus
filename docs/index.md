@@ -432,7 +432,7 @@ It maintains a sorted list of pending CAN messages, always transmitting the fram
 ## **Design Diagram**
 
 <div align="center">
-  <img src="./images_design/priority_module.png" width="600" height="400">
+  <img src="./images_design/pirority_module.jpg" width="600" height="400">
 </div>
 
 ## **`CAN_Filtering`** Module 
