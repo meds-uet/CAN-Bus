@@ -18,7 +18,7 @@ The CAN Bus IP Core is designed to transmit and receive CAN frames with full sup
   <img src="./images_design/top_module.jpg" width="600" height="400">
 </div>
 
-### **Sub Modules***
+### ***Sub Modules***
 
 Each submodule below contributes to a specific stage of CAN frame transmission and reception, forming the core logic of the IP.
 1. ***can_tranmitter***
@@ -41,7 +41,7 @@ Each submodule below contributes to a specific stage of CAN frame transmission a
 
 10. ***can_timing***
 
-### **CAN Transmitter Module*** (`can_transmitter`)
+### ***CAN Transmitter Module*** (`can_transmitter`)
 
 #### ***Description***
 The `can_transmitter` module handles the bit-level serialization of a CAN frame according to the CAN 2.0A/B protocol. It implements a finite state machine (FSM) that transitions through each field of the frame — from Start of Frame (SOF) to Interframe Space (IFS) — and generates a single `tx_bit` at each sample point on the CAN bus.
@@ -143,7 +143,7 @@ The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sa
 
 ---
 
-#### **Inputs***
+#### ***Inputs***
 | Signal Name        | Width  | Description |
 |-------------------|--------|-------------|
 | clk             | 1      | System clock for sequential operations. |
