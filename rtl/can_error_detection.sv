@@ -13,7 +13,7 @@
 // Date: 6th August,2025
 
 
-
+`include "can_defs.svh"
 
 module can_error_detection (
     input  logic clk,
@@ -80,8 +80,6 @@ always_ff @(posedge clk or negedge rst) begin
                 if (tec <= 5'd31)   // Prevent overflow beyond 511
                     tec <= tec + 1; 
             end
-
-
 
             // Receive errors 
             if (!tx_active && (bit_error || form_error || stuff_error || crc_error)) begin

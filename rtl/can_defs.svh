@@ -103,6 +103,13 @@ typedef struct {
   logic [3:0]  dlc;           // Data length code (0 to 8)
   logic [7:0]  data[8];       // Data payload (up to 8 bytes)
 } tx_req_t;
+// CAN error/overload flag transmission types
+typedef enum logic [1:0] {
+    ERR_FLAG_NONE,      
+    ERR_FLAG_ACTIVE,    
+    ERR_FLAG_PASSIVE,   
+    ERR_FLAG_OVERLOAD   
+} error_flag_state_t;
 
 
 `endif // CAN_DEFS
