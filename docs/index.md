@@ -3,12 +3,12 @@
 
 CAN (Controller Area Network) is a serial communication protocol originally developed by Bosch in 1986 for use in automotive systems, but now widely used in industrial, medical, and embedded systems.
 
-## ***OVERVIEW***
+## ****OVERVIEW****
 
-- **Project** : CAN BUS IP CORE
-- **Target** : SoC Integration
-- **Protocol Supported** :  CAN 2.0A / 2.0B
-- **Language** : SystemVerilog
+- ***Project*** : CAN BUS IP CORE
+- ***Target*** : SoC Integration
+- ***Protocol Supported*** :  CAN 2.0A / 2.0B
+- ***Language*** : SystemVerilog
 
 The CAN Bus IP Core is designed to transmit and receive CAN frames with full support for arbitration, error handling, bit stuffing, and CRC checking. It is intended for integration into FPGA/ASIC-based SoC designs.
 
@@ -41,17 +41,16 @@ Each submodule below contributes to a specific stage of CAN frame transmission a
 
 10. ***can_timing***
 
+## ***CAN Transmitter Module*** (`can_transmitter`)
 
-## **CAN Transmitter Module** (`can_transmitter`)
-
-###  Description
+###  ***Description***
 The `can_transmitter` module handles the bit-level serialization of a CAN frame according to the CAN 2.0A/B protocol. It implements a finite state machine (FSM) that transitions through each field of the frame — from Start of Frame (SOF) to Interframe Space (IFS) — and generates a single `tx_bit` at each sample point on the CAN bus.
 
-This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** frames and includes handling for **remote transmission requests (RTR)**, **data fields**, **CRC transmission**, and **frame delimiters**.
+This module supports both ***standard (11-bit ID)*** and ***extended (29-bit ID)*** frames and includes handling for ***remote transmission requests (RTR)***, ***data fields***, ***CRC transmission***, and ***frame delimiters***.
 
 ---
 
-### **Inputs**
+### ***Inputs***
 
 | Signal             | Width     | Description |
 |--------------------|-----------|-------------|
@@ -71,7 +70,7 @@ This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** 
 
 ---
 
-### **Outputs**
+### ***Outputs***
 
 | Signal             | Width     | Description |
 |--------------------|-----------|-------------|
@@ -82,7 +81,7 @@ This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** 
 
 ---
 
-###  **FSM States Summary**
+###  ***FSM States Summary***
 
 | State               | Description                                          |
 |---------------------|------------------------------------------------------|
@@ -106,7 +105,7 @@ This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** 
 
 ---
 
-###  **Design Behavior**
+###  ***Design Behavior***
 
 - Frame transmission starts when `start_tx` is asserted and `sample_point` is high.
 - Bit and byte counters track field progress in each state.
@@ -115,7 +114,7 @@ This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** 
 
 ---
 
-###  **Design Notes**
+###  ***Design Notes***
 
 - Compliant with CAN 2.0A and 2.0B.
 - `sample_point` ensures correct synchronization with CAN timing.
@@ -123,7 +122,7 @@ This module supports both **standard (11-bit ID)** and **extended (29-bit ID)** 
 
 ---
 
-### **Data Path and Controller**
+### ***Data Path and Controller***
 
 Here is the data serialization data path:
 
@@ -137,15 +136,14 @@ Here is the FSM for transmitter:
   <img src="./images_design/transmitter_FSM.jpg" width="400" height="500">
 </div>
 
+## ***CAN Receiver Module*** (`can_receiver`)
 
-## **CAN Receiver Module** (`can_receiver`)
-
-###  **Description**
-The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sampling point (`rx_point`). It reconstructs the full frame according to the CAN 2.0A/B protocol, supporting both **standard (11-bit ID)** and **extended (29-bit ID)** formats. It outputs all parsed fields of the CAN frame, including identifiers, control bits, data, and CRC, and signals completion with `rx_done`.
+###  ***Description***
+The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sampling point (`rx_point`). It reconstructs the full frame according to the CAN 2.0A/B protocol, supporting both ***standard (11-bit ID)*** and ***extended (29-bit ID)*** formats. It outputs all parsed fields of the CAN frame, including identifiers, control bits, data, and CRC, and signals completion with `rx_done`.
 
 ---
 
-### **Inputs**
+### ***Inputs***
 | Signal Name        | Width  | Description |
 |-------------------|--------|-------------|
 | clk             | 1      | System clock for sequential operations. |
@@ -156,7 +154,7 @@ The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sa
 
 ---
 
-### **Outputs**
+### ***Outputs***
 | Signal Name        | Width      | Description |
 |-------------------|-----------|-------------|
 | rx_data_array    | 8×8 bits  | Array storing the received data bytes (up to 8 bytes). |
@@ -165,11 +163,11 @@ The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sa
 | rx_id_ext        | 18        | Extended ID of the received frame (if IDE = 1). |
 | rx_ide           | 1         | Indicates if the frame uses extended ID (1) or standard ID (0). |
 | rx_dlc           | 4         | Data length code of the received frame (0–8 bytes). |
-| rx_remote_req    | 1         | Indicates if the received frame is a remote request. |
+| rx_remote_req    | 1         | Indicates if the received frame is a remote request. |
 
 ---
 
-###  **FSM States Summary**
+###  ***FSM States Summary***
 
 | State               | Description                                              |
 |---------------------|----------------------------------------------------------|
@@ -192,7 +190,7 @@ The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sa
 
 ---
 
-###  **Design Behavior**
+###  ***Design Behavior***
 
 - Each `rx_bit_cuurent` is shifted into internal registers when `sample_point` is high.
 - Frame fields (IDs, DLC, data, CRC) are parsed and saved.
@@ -202,7 +200,7 @@ The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sa
 
 ---
 
-###  **Key Internal Registers**
+###  ***Key Internal Registers***
 
 | Register           | Purpose                                     |
 |--------------------|---------------------------------------------|
@@ -215,7 +213,7 @@ The `can_receiver` module receives and decodes a CAN frame bit-by-bit at each sa
 
 ---
 
-### **FSM Diagram**
+### ***FSM Diagram***
 
 Here is the FSM for receiver:
 
@@ -223,17 +221,17 @@ Here is the FSM for receiver:
   <img src="./images_design/receiver_FSM.jpg" width="400" height="500">
 </div>
 
-## **`CAN_Bit_Stuffer`** Module
+## ***`CAN_Bit_Stuffer`*** Module
 
-### **Overview**
-The `can_bit_stuffer` module implements **bit stuffing** logic for a CAN (Controller Area Network) transmitter.  
+### ***Overview***
+The `can_bit_stuffer` module implements ***bit stuffing*** logic for a CAN (Controller Area Network) transmitter.  
 Bit stuffing ensures that no more than five consecutive identical bits are sent, preserving synchronization between transmitter and receiver.
 
-When the module detects **five consecutive identical bits**, it automatically inserts a complementary bit (stuffed bit) into the transmitted stream.
+When the module detects ***five consecutive identical bits***, it automatically inserts a complementary bit (stuffed bit) into the transmitted stream.
 
-### **Interface**
+### ***Interface***
 
-#### **Inputs**
+#### ***Inputs***
 
 | Signal         | Width | Description                                                  |
 |----------------|-------|--------------------------------------------------------------|
@@ -242,31 +240,30 @@ When the module detects **five consecutive identical bits**, it automatically in
 | `bit_in`       | 1     | Input bit from transmitter logic                             |
 | `sample_point` | 1     | High when bit counting and stuffing check should be performed |
 
-#### **Outputs**
+#### ***Outputs***
 
 | Signal           | Width | Description                                                   |
 |------------------|-------|---------------------------------------------------------------|
 | `bit_out`        | 1     | Output bit after optional stuffing                            |
 | `stuff_inserted` | 1     | High for one cycle when a stuffed bit is inserted              |
 
-### **Functionality**
+### ***Functionality***
 
 - Keeps track of consecutive identical bits using `same_count`.
-- When **six identical bits** in a row are detected (`same_count == 6`), the module outputs the **complement** of the previous bit as the stuffed bit.
+- When ***six identical bits*** in a row are detected (`same_count == 6`), the module outputs the ***complement*** of the previous bit as the stuffed bit.
 - `stuff_inserted` goes high in that cycle to indicate stuffing occurred.
 - Resets the counter on reset or when a different bit appears.
 
 ---
 
-## **`CAN_Bit_Destuffer`** Module
+## ***`CAN_Bit_Destuffer`*** Module
 
-### **Overview**
-The `can_bit_destuffer` module implements **bit de-stuffing** logic for a CAN receiver.  
+### ***Overview***
+The `can_bit_destuffer` module implements ***bit de-stuffing*** logic for a CAN receiver.  
 It detects and flags stuffed bits so the higher-level receiver logic can skip them, reconstructing the original transmitted data.
 
-### **Interface**
 
-#### **Inputs**
+#### ***Inputs***
 
 | Signal         | Width | Description                                                  |
 |----------------|-------|--------------------------------------------------------------|
@@ -275,22 +272,22 @@ It detects and flags stuffed bits so the higher-level receiver logic can skip th
 | `bit_in`       | 1     | Incoming bit from the CAN bus                                |
 | `sample_point` | 1     | High when bit counting and de-stuffing check should be performed |
 
-#### **Outputs**
+#### ***Outputs***
 
 | Signal        | Width | Description                                                   |
 |---------------|-------|---------------------------------------------------------------|
 | `bit_out`     | 1     | Output bit (same as input, skipping is handled externally)     |
 | `remove_flag` | 1     | High when the current bit is a stuffed bit and should be ignored |
 
-### **Functionality**
+### ***Functionality***
 
 - Tracks consecutive identical bits using `same_count`.
-- When **six identical bits** in a row are detected (`same_count == 6`), `remove_flag` is asserted.
-- The actual **removal** of stuffed bits is handled by higher-level receiver logic, not inside this module.
+- When ***six identical bits*** in a row are detected (`same_count == 6`), `remove_flag` is asserted.
+- The actual ***removal*** of stuffed bits is handled by higher-level receiver logic, not inside this module.
 
 ---
 
-## **Bit Stuffing Data Path**
+## ***Bit Stuffing Data Path***
 
 Here is the Datapath of bit stuffing:
 
@@ -298,7 +295,7 @@ Here is the Datapath of bit stuffing:
   <img src="./images_design/bit_stuffing.jpg" width="500" height="500">
 </div>
 
-## **Bit De-stuffing Data Path**
+## ***Bit De-stuffing Data Path***
 
 Here is the Datapath of bit de-stuffing:
 
@@ -306,21 +303,21 @@ Here is the Datapath of bit de-stuffing:
   <img src="./images_design/de_stuffing.jpg" width="600" height="500">
 </div>
 
-## **CAN Arbitration Module**
+## ***CAN Arbitration Module***
 
-### **Overview**
+### ***Overview***
 
 The `can_arbitration` module is responsible for detecting arbitration loss in a Controller Area Network (CAN) protocol. Arbitration occurs during the ID field of a CAN frame when multiple nodes may attempt to transmit simultaneously. Arbitration loss is detected when a transmitter sends a recessive bit (`1`) but sees a dominant bit (`0`) on the bus, indicating another node with a higher priority is transmitting.
 
 ---
 
-### **Functionality**
+### ***Functionality***
 
 This module monitors the transmitted (`tx_bit`) and received (`rx_bit`) bits during the arbitration phase. If the node transmits a recessive bit but receives a dominant bit at a `sample_point` during the active arbitration phase, the module flags this as an arbitration loss.
 
 ---
 
-### **Port Description**
+### ***Port Description***
 
 | Signal Name        | Direction | Width | Description                                                                 |
 |--------------------|-----------|--------|-----------------------------------------------------------------------------|
@@ -334,7 +331,7 @@ This module monitors the transmitted (`tx_bit`) and received (`rx_bit`) bits dur
 
 ---
 
-### **Internal Logic**
+### ***Internal Logic***
 
 - A flip-flop `lost_ff` holds the arbitration loss state.
 - At each `sample_point`, if:
@@ -346,52 +343,60 @@ This module monitors the transmitted (`tx_bit`) and received (`rx_bit`) bits dur
 
 ---
 
-### **Usage**
+### ***Usage***
 
 This module is used in CAN transmitters to detect if they have lost arbitration and should back off from transmission to allow a higher-priority frame to continue uninterrupted.
 
 ---
 
-### **Arbitration Design Diagram**
+### ***Arbitration Design Diagram***
 
 <div align="center">
   <img src="./images_design/Arbitration.jpg" width="600" height="400">
 </div>
 
-## **`CAN_tx_priority`**
+## ***`CAN_tx_priority`***
  
-The `can_tx_priority` module implements a **priority-based CAN transmit request buffer**.  
-It maintains a sorted list of pending CAN messages, always transmitting the frame with the **lowest CAN ID** (highest priority) first.
+The `can_tx_priority` module implements a ***priority-based CAN transmit request buffer***.  
+It maintains a sorted list of pending CAN messages, always transmitting the frame with the ***lowest CAN ID*** (highest priority) first.
 
-### **Key Features**
-- **Preemption Support** — A newly arrived higher-priority frame can replace the currently transmitting frame.
-- **Automatic Buffer Reordering** — Frames in the buffer remain sorted by priority.
-- **Write/Read Enable Control** — Prevents data overwrites and unauthorized reads.
-- **Full and Empty Flags** — For buffer status monitoring.
-
----
-
-## **Ports**
-
-| Name        | Direction | Width      | Description |
-|-------------|-----------|------------|-------------|
-| `clk`       | Input     | 1          | Clock signal |
-| `rst`       | Input     | 1          | Asynchronous reset |
-| `we`        | Input     | 1          | Write enable signal |
-| `req_id`    | Input     | 11         | Requested CAN ID |
-| `req_dlc`   | Input     | 4          | Requested Data Length Code |
-| `req_data`  | Input     | 8×8        | Requested data payload bytes |
-| `re`        | Input     | 1          | Read enable (transmission complete) |
-| `start_tx`  | Output    | 1          | Indicates a frame is ready to transmit |
-| `tx_id`     | Output    | 11         | Transmit CAN ID |
-| `tx_dlc`    | Output    | 4          | Transmit Data Length Code |
-| `tx_data`   | Output    | 8×8        | Transmit payload bytes |
-| `full`      | Output    | 1          | Buffer is full |
-| `empty`     | Output    | 1          | Buffer is empty |
+### ***Key Features***
+- ***Preemption Support*** — A newly arrived higher-priority frame can replace the currently transmitting frame.
+- ***Automatic Buffer Reordering*** — Frames in the buffer remain sorted by priority.
+- ***Write/Read Enable Control*** — Prevents data overwrites and unauthorized reads.
+- ***Full and Empty Flags*** — For buffer status monitoring.
 
 ---
 
-## **Parameters**
+
+
+#### ***Inputs***
+
+| Name       | Width  | Description                          |
+|------------|--------|--------------------------------------|
+| `clk`      | 1      | Clock signal                         |
+| `rst`      | 1      | Asynchronous reset                   |
+| `we`       | 1      | Write enable signal                  |
+| `req_id`   | 11     | Requested CAN ID                     |
+| `req_dlc`  | 4      | Requested Data Length Code           |
+| `req_data` | 8×8    | Requested data payload bytes         |
+| `re`       | 1      | Read enable (transmission complete)  |
+
+#### ***Outputs***
+
+| Name       | Width  | Description                          |
+|------------|--------|--------------------------------------|
+| `start_tx` | 1      | Indicates a frame is ready to transmit |
+| `tx_id`    | 11     | Transmit CAN ID                      |
+| `tx_dlc`   | 4      | Transmit Data Length Code            |
+| `tx_data`  | 8×8    | Transmit payload bytes               |
+| `full`     | 1      | Buffer is full                       |
+| `empty`    | 1      | Buffer is empty                      |
+
+
+---
+
+## ***Parameters***
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -399,55 +404,55 @@ It maintains a sorted list of pending CAN messages, always transmitting the fram
 
 ---
 
-##  **Operation**
+##  ***Operation***
 
 ### Write Operation
-- When `we` is asserted and the buffer is **not full**, a new CAN frame is inserted.
-- If the transmitter (`tx_reg`) is **idle**, the frame goes directly to transmission.
-- If the incoming frame has **higher priority** (lower `req_id`) than the current transmitting frame, **preemption** occurs:
+- When `we` is asserted and the buffer is ***not full***, a new CAN frame is inserted.
+- If the transmitter (`tx_reg`) is ***idle***, the frame goes directly to transmission.
+- If the incoming frame has ***higher priority*** (lower `req_id`) than the current transmitting frame, ***preemption*** occurs:
   1. The current transmitting frame is pushed into the buffer (sorted position).
   2. The new frame becomes the active transmit frame.
 - Otherwise, the frame is inserted into the buffer in sorted order.
 
-### Read Operation
-- When `re` is asserted and the buffer is **not empty**:
+### ***Read Operation***
+- When `re` is asserted and the buffer is ***not empty***:
   1. The next frame in the buffer (lowest CAN ID) is moved into the transmitter register.
   2. Buffer is shifted up to fill the gap.
 - If buffer becomes empty after read, `tx_reg` is invalidated.
 
 ---
 
-##  Status Flags
+##  ***Status Flags***
 - `full` — Asserted when `count == N`
 - `empty` — Asserted when no valid transmit frame exists and buffer is empty
 
 ---
 
-## Priority Rules
-- **Lower CAN ID → Higher Priority**
+## ***Priority Rules***
+- ***Lower CAN ID → Higher Priority***
 - Preemption replaces currently transmitting frame if incoming frame has lower ID.
 
 ---
 
-## **Design Diagram**
+## ***Design Diagram***
 
 <div align="center">
   <img src="./images_design/pirority_module.jpg" width="600" height="400">
 </div>
 
-## **`CAN_Filtering`** Module 
+## ***`CAN_Filtering`*** Module 
 
-### **Overview**
-The `can_filtering` module implements **CAN frame acceptance filtering** based on the **Acceptance Code** and **Acceptance Mask** registers.  
-It supports both **Standard (11-bit)** and **Extended (29-bit)** CAN identifiers, allowing the receiver to accept or reject frames before processing.
+### ***Overview***
+The `can_filtering` module implements ***CAN frame acceptance filtering*** based on the ***Acceptance Code*** and ***Acceptance Mask*** registers.  
+It supports both ***Standard (11-bit)*** and ***Extended (29-bit)*** CAN identifiers, allowing the receiver to accept or reject frames before processing.
 
 This module compares the incoming CAN ID with configured acceptance codes, using masks to selectively enable or disable bit comparisons.
 
 ---
 
-### **Interface**
+### ***Interface***
 
-#### **Inputs**
+#### ***Inputs***
 
 | Signal                | Width | Description                                                                 |
 |-----------------------|-------|-----------------------------------------------------------------------------|
@@ -463,7 +468,7 @@ This module compares the incoming CAN ID with configured acceptance codes, using
 | `acceptance_mask_2`   | 8     | Acceptance mask register byte 2                                             |
 | `acceptance_mask_3`   | 8     | Acceptance mask register byte 3                                             |
 
-#### **Outputs**
+#### ***Outputs***
 
 | Signal          | Width | Description                                                |
 |-----------------|-------|------------------------------------------------------------|
@@ -471,20 +476,20 @@ This module compares the incoming CAN ID with configured acceptance codes, using
 
 ---
 
-### **Functionality**
+### ***Functionality***
 
-- **Identifier Formatting**:
-  - **Standard frame (`ide = 0`)**:
+- ***Identifier Formatting***:
+  - ***Standard frame (`ide = 0`)***:
     - `rx_id` is formed by padding `id_std` with 18 leading zeros.
     - Acceptance code and mask are taken from `acceptance_code_0`, upper 3 bits of `acceptance_code_1`, and their corresponding mask bytes.
-  - **Extended frame (`ide = 1`)**:
+  - ***Extended frame (`ide = 1`)***:
     - `rx_id` is the concatenation of `id_std` (11 bits) and `id_ext` (18 bits) → total 29 bits.
     - Acceptance code and mask are taken from all four bytes, with the last byte using only its upper 5 bits.
 
-## **`CAN_CRC_gen`** Module
+## ***`CAN_CRC_gen`*** Module
 
-### **Overview**
-The `can_crc15_gen` module implements a **15-bit CRC generator** for the CAN (Controller Area Network) protocol.  
+### ***Overview***
+The `can_crc15_gen` module implements a ***15-bit CRC generator*** for the CAN (Controller Area Network) protocol.  
 It processes incoming data bits in real time and updates the CRC register using the CAN polynomial:
 
 \[
@@ -495,9 +500,9 @@ This polynomial is defined by the CAN 2.0A/B standard and is used for error dete
 
 ---
 
-### **Interface**
+### ***Interface***
 
-#### **Inputs**
+#### ***Inputs***
 
 | Signal     | Width | Description                                                                 |
 |------------|-------|-----------------------------------------------------------------------------|
@@ -507,7 +512,7 @@ This polynomial is defined by the CAN 2.0A/B standard and is used for error dete
 | `data_bit` | 1     | Serial data bit to be processed                                              |
 | `crc_init` | 1     | High to reset CRC register to `0` at the start of a new frame                |
 
-#### **Outputs**
+#### ***Outputs***
 
 | Signal    | Width  | Description                                          |
 |-----------|--------|------------------------------------------------------|
@@ -515,17 +520,18 @@ This polynomial is defined by the CAN 2.0A/B standard and is used for error dete
 
 ---
 
-### **Functionality**
+### ***Functionality***
 
-- The CRC register (`crc_reg`) is updated **bit-by-bit** when `crc_en` is high.
+- The CRC register (`crc_reg`) is updated ***bit-by-bit*** when `crc_en` is high.
 - The `feedback` signal is generated as the XOR of the incoming `data_bit` and the MSB (`crc_reg[14]`).
-- Shift and XOR operations are performed according to the **CAN CRC-15 polynomial** taps:
+- Shift and XOR operations are performed according to the ***CAN CRC-15 polynomial*** taps:
   - Feedback affects bits 10, 8, 7, 4, and 3.
   - All other bits shift down normally.
 - The `crc_init` input resets the CRC register to zero at the beginning of a new frame.
 - The final CRC value is available on `crc_out` and can be transmitted at the end of the frame.
 
 ---
+
 
 
 
