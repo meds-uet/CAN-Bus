@@ -39,7 +39,21 @@ module can_tx_priority #(
 
   tx_req_t tx_reqs [N];  // Buffer
   tx_req_t tx_reg;       // Currently transmitting frame
-  int count;             // Buffer entry count
+  int count;            // Buffer entry count
+  int pos_1,pos_2;
+  tx_req_t new_req;
+
+
+  always_comb begin
+   new_req.valid = we;  // only valid when we is asserted
+  new_req.id    = req_id;
+  new_req.dlc   = req_dlc;
+  for (int j = 0; j < 8; j++) begin
+    new_req.data[j] = req_data[j];
+  end
+end
+
+
 
   always_ff @(posedge clk or posedge rst) begin
     if (rst) begin
@@ -50,65 +64,57 @@ module can_tx_priority #(
       end
     end else begin
       // WRITE OPERATION 
+      
       if (we && count < N) begin
-        // Prepare new request
-        tx_req_t new_req;
-        new_req.valid = 1;
-        new_req.id    = req_id;
-        new_req.dlc   = req_dlc;
-        for (int j = 0; j < 8; j++) begin
-          new_req.data[j] = req_data[j];
-        end
-
+      
         if (!tx_reg.valid) begin
           // If TX is idle, put directly into tx_reg
-          tx_reg = new_req;
+          tx_reg <= new_req;
         end
         else if (new_req.id < tx_reg.id) begin
           // Preemption: shift buffer up and insert old tx_reg
-          int pos;
-          pos=0;
-          while (pos < count && tx_reqs[pos].id <= tx_reg.id) begin
-            pos++;
+          
+          pos_1 <= 0;
+          while (pos_1 < count && tx_reqs[pos_1].id <= tx_reg.id) begin
+            pos_1 <= pos_1+1;
           end
-          for (int i = count; i > pos; i--) begin
-            tx_reqs[i] = tx_reqs[i-1];
+          for (int i = count; i > pos_1; i--) begin
+            tx_reqs[i] <= tx_reqs[i-1];
           end
-          tx_reqs[pos] = tx_reg;
-          count++;
+          tx_reqs[pos_1] <= tx_reg;
+          count        <= count + 1;
 
           // Replace tx_reg with new high-priority request
-          tx_reg = new_req;
+          tx_reg <= new_req;
         end
         else begin
           // Normal insert into buffer (sorted by ID)
-          int pos;
-          pos=0;
-          while (pos < count && tx_reqs[pos].id <= new_req.id) begin
-            pos++;
+          pos_2 <= 0;
+          while (pos_2 < count && tx_reqs[pos_2].id <= new_req.id) begin
+            pos_2 <= pos_2+1;
           end
-          for (int i = count; i > pos; i--) begin
-            tx_reqs[i] = tx_reqs[i-1];
+          for (int i = count; i > pos_2; i--) begin
+            tx_reqs[i] <= tx_reqs[i-1];
           end
-          tx_reqs[pos] = new_req;
-          count++;
+          tx_reqs[pos_2] <= new_req;
+          count        <= count + 1;
         end
       end
 
-      //  READ OPERATION 
+      // READ OPERATION 
       if (re) begin
         if (count > 0) begin
           // Move first buffer entry into tx_reg
-          tx_reg = tx_reqs[0];
+          tx_reg <= tx_reqs[0];
           // Shift buffer up
           for (int i = 0; i < count-1; i++) begin
-            tx_reqs[i] = tx_reqs[i+1];
+            tx_reqs[i] <= tx_reqs[i+1];
           end
-          tx_reqs[count-1].valid = 0;
-          count--;
+          tx_reqs[count-1].valid <= 0;
+          count                  <= count - 1;
         end else begin
           // No more data
-          tx_reg.valid = 0;
+          tx_reg.valid <= 0;
         end
       end
     end
