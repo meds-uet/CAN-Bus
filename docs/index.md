@@ -22,6 +22,7 @@ The CAN Bus IP Core is designed to transmit and receive CAN frames with full sup
 ### ***Sub Modules***
 
 Each submodule below contributes to a specific stage of CAN frame transmission and reception, forming the core logic of the IP.
+
 1. ***can_tranmitter***
 
 2. ***can_receiver***
