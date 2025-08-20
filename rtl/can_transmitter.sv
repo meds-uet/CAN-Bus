@@ -66,7 +66,7 @@ module can_transmitter (
 
   // Sequential block
   always_ff @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
+    if (rst_n) begin
       tx_state_ff       <= STATE_IDLE;
       tx_bit_cnt_ff     <= 6'd0;
       tx_byte_cnt_ff    <= 4'd0;
@@ -237,7 +237,7 @@ module can_transmitter (
 
   // Output logic
   always_ff @(posedge clk or negedge rst_n) begin
-    if (!rst_n)
+    if (rst_n)
       tx_bit <= 1'b1;
     else if (sample_point)
       tx_bit <= tx_frame_tx_bit;
