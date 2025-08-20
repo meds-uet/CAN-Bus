@@ -100,7 +100,7 @@ module can_transmitter (
           tx_frame_tx_bit = 1'b0;
           tx_state_next = STATE_ID_STD;
           tx_bit_cnt_next = 10;
-          arbitration_active = 1'b1;
+          arbitration_active = 1'b0;
           bit_stuffing_next = 1'b1;
         end
       end
@@ -127,6 +127,7 @@ module can_transmitter (
           tx_state_next = STATE_ID_EXT;
           tx_bit_cnt_next = 17;
         end else begin
+          arbitration_active = 0;
           tx_state_next = STATE_BIT_R_0;
         end
       end
@@ -141,7 +142,9 @@ module can_transmitter (
       end
 
       STATE_BIT_RTR_2: begin
+        arbitration_active = 1;
         tx_frame_tx_bit = tx_frame_local.rtr2;
+        arbitration_active = 0;
         tx_state_next = STATE_BIT_R_1;
       end
 
@@ -155,7 +158,6 @@ module can_transmitter (
         tx_state_next = STATE_DLC;
         tx_bit_cnt_next = 3;
       end
-
       STATE_DLC: begin
         tx_frame_tx_bit = tx_frame_local.dlc[tx_bit_cnt_ff];
         if (tx_bit_cnt_ff == 0) begin
@@ -163,27 +165,35 @@ module can_transmitter (
             tx_state_next = STATE_CRC;
           else begin
             tx_state_next = STATE_DATA;
-            rd_tx_data_byte = 1'b1;
+            rd_tx_data_byte = 1'b1;  // request first byte
+            tx_byte_cnt_next = 0;
+            tx_bit_cnt_next = 7;     // 7 downto 0
+            tx_data_byte_next = tx_frame_local.data[0];
           end
         end else
           tx_bit_cnt_next = tx_bit_cnt_ff - 1;
       end
-
       STATE_DATA: begin
-        tx_data_byte_next = {tx_data_byte_ff[6:0], 1'b0};
-        tx_frame_tx_bit = tx_data_byte_ff[7];
-        tx_bit_cnt_next = tx_bit_cnt_ff + 1;
-        if (tx_bit_cnt_ff[2:0] == 3'd7) begin
-          tx_byte_cnt_next = tx_byte_cnt_ff + 1;
-          rd_tx_data_byte = 1'b1;
-          if (tx_bit_cnt_ff == ((tx_frame_local.dlc << 3) - 1)) begin
-            tx_state_next = STATE_CRC;
+        // Send current bit of the current byte
+        tx_frame_tx_bit = tx_data_byte_ff[tx_bit_cnt_ff]; // MSB first
+
+        if (tx_bit_cnt_ff == 0) begin
+          if (tx_byte_cnt_ff == tx_frame_local.dlc - 1) begin
+            // Finished all bytes
+            tx_state_next    = STATE_CRC;
+            tx_bit_cnt_next  = 14;
             tx_byte_cnt_next = 0;
-            tx_bit_cnt_next = 14;
+          end else begin
+            // Load next byte
+            tx_byte_cnt_next  = tx_byte_cnt_ff + 1;
+            tx_data_byte_next = tx_frame_local.data[tx_byte_cnt_ff + 1];
+            tx_bit_cnt_next   = 7;
+            rd_tx_data_byte   = 1'b1;
           end
+        end else begin
+          tx_bit_cnt_next = tx_bit_cnt_ff - 1;
         end
       end
-
       STATE_CRC: begin
         tx_frame_tx_bit = tx_frame_local.crc[tx_bit_cnt_ff];
         if (tx_bit_cnt_ff == 0)
